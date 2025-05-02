@@ -3,94 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Story of Time - Adventure Game</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Story of Time</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/ui.css">
+    <link rel="stylesheet" href="styles/game.css">
 </head>
 <body>
-    <!-- Header Navigation -->
-    <header class="game-header">
-        <nav class="nav-menu">
-            <a href="#" class="logo">Story of Time</a>
-            <div class="nav-links">
-                <a href="#play">Play</a>
-                <a href="#leaderboard">Leaderboard</a>
-                <a href="#about">About</a>
-            </div>
-        </nav>
-    </header>
-
-    <!-- Main Game Container -->
-    <div class="game-container">
-        <div class="canvas-container">
-            <!-- Player Stats -->
-            <div class="player-stats">
-                <div id="health">Health: 100</div>
-                <div id="score">Score: 0</div>
-            </div>
-
-            <!-- Game Canvas -->
-            <canvas id="gameCanvas"></canvas>
-
-            <!-- Game UI Elements -->
-            <div class="game-ui">
-                <div class="ui-element">Level: 1</div>
-                <div class="ui-element">Time: 00:00</div>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="coffee-cup-loader">
+            <div class="coffee-liquid"></div>
+            <div class="steam">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
         </div>
+        <p class="loading-text">Brewing...</p>
+    </div>
 
-        <!-- Game Controls -->
-        <div class="game-controls">
-            <button class="control-button" id="startButton">Start Game</button>
-            <button class="control-button" id="resetButton">Reset</button>
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen">
+        <h1 class="game-title">Story of Time</h1>
+        <div class="menu-buttons">
+            <button class="pixel-button" id="startJourney">Start Journey</button>
+            <button class="pixel-button" id="continueJourney">Continue Journey</button>
+            <button class="pixel-button" id="settings">Settings</button>
+            <button class="pixel-button" id="statistics">Statistics</button>
         </div>
+        <div class="user-info">
+            <span class="user-name">Player: Zeeb0-0</span>
+        </div>
+    </div>
 
-        <!-- Game Instructions -->
-        <div class="game-info">
-            <div class="info-card">
-                <h3>How to Play</h3>
-                <ul>
-                    <li>Use Left/Right Arrow Keys to move</li>
-                    <li>Press Space to jump</li>
-                    <li>Press Start Game to begin</li>
-                </ul>
+    <!-- Game Container -->
+    <div id="game-container" class="screen" style="display: none;">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-ui">
+            <div class="ui-top">
+                <div class="ui-element">Time: <span id="gameTime">00:00</span></div>
+                <div class="ui-element">Score: <span id="gameScore">0</span></div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts (Order matters!) -->
-    <script>
-        // Global game configuration
-        const GAME_CONFIG = {
-            gravity: 0.5,
-            jumpForce: -12,
-            maxFallSpeed: 12,
-            playerSpeed: 5
-        };
-    </script>
-    <script src="scripts/input.js"></script>
-    <script src="scripts/platform.js"></script>
-    <script src="scripts/player.js"></script>
-    <script src="scripts/game.js"></script>
-    <script>
-        // Initialize game when window loads
-        let game;
-        
-        document.getElementById('startButton').addEventListener('click', () => {
-            if (!game) {
-                game = new Game();
-            }
-            game.gameRunning = true;
-        });
+    <!-- Settings Menu -->
+    <div id="settings-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-content">
+            <h2>Settings</h2>
+            <div class="volume-controls">
+                <div class="volume-control">
+                    <label for="masterVolume">Master Volume</label>
+                    <div class="slider-container">
+                        <input type="range" id="masterVolume" class="pixel-slider" min="0" max="100" value="100">
+                        <span class="volume-value">100%</span>
+                    </div>
+                </div>
+                <div class="volume-control">
+                    <label for="musicVolume">Music</label>
+                    <div class="slider-container">
+                        <input type="range" id="musicVolume" class="pixel-slider" min="0" max="100" value="70">
+                        <span class="volume-value">70%</span>
+                    </div>
+                </div>
+                <div class="volume-control">
+                    <label for="sfxVolume">Sound Effects</label>
+                    <div class="slider-container">
+                        <input type="range" id="sfxVolume" class="pixel-slider" min="0" max="100" value="100">
+                        <span class="volume-value">100%</span>
+                    </div>
+                </div>
+            </div>
+            <button class="pixel-button" id="closeSettings">Close</button>
+        </div>
+    </div>
 
-        document.getElementById('resetButton').addEventListener('click', () => {
-            if (game) {
-                game = new Game();
-            }
-        });
+    <!-- Save Slots Menu -->
+    <div id="save-slots-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-content">
+            <h2>Save Slots</h2>
+            <div class="save-slots-grid" id="saveSlotsList">
+                <!-- Save slots will be dynamically populated -->
+            </div>
+            <button class="pixel-button" id="closeSaveMenu">Back</button>
+        </div>
+    </div>
 
-        // Initialize touch controls for mobile
-        setupTouchControls();
-    </script>
+    <!-- Debug Panel (hidden by default) -->
+    <div id="debug-panel" style="display: none;"></div>
+
+    <script type="module" src="scripts/main.js"></script>
 </body>
 </html>
