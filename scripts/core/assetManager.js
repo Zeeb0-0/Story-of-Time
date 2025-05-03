@@ -11,6 +11,7 @@ class AssetManager {
         this.images = new Map();
         this.audio = new Map();
         this.data = new Map();
+        this.sprites = new Map(); // Add sprites map
     }
 
     async loadImage(key, src) {
@@ -41,6 +42,51 @@ class AssetManager {
     
         this.loadingPromises.set(key, loadPromise);
         return loadPromise;
+    }
+
+    // Add the missing loadSprite method
+    async loadSprite(key, jsonPath, imagePath) {
+        if (this.loadingPromises.has(key)) {
+            return this.loadingPromises.get(key);
+        }
+
+        const loadPromise = Promise.all([
+            this.loadJSON(`${key}_data`, jsonPath),
+            this.loadImage(`${key}_image`, imagePath)
+        ]).then(([jsonData, image]) => {
+            const spriteData = {
+                key,
+                data: jsonData,
+                image,
+                frames: jsonData.frames,
+                animations: this._processAnimations(jsonData)
+            };
+            
+            this.sprites.set(key, spriteData);
+            DEBUG.log(`Successfully loaded sprite: ${key}`, 'info');
+            return spriteData;
+        }).catch(error => {
+            this.loadingPromises.delete(key);
+            DEBUG.log(`Failed to load sprite: ${key}`, 'error');
+            throw error;
+        });
+
+        this.loadingPromises.set(key, loadPromise);
+        return loadPromise;
+    }
+
+    _processAnimations(jsonData) {
+        const animations = {};
+        if (jsonData.meta && jsonData.meta.frameTags) {
+            jsonData.meta.frameTags.forEach(tag => {
+                animations[tag.name] = {
+                    from: tag.from,
+                    to: tag.to,
+                    direction: tag.direction
+                };
+            });
+        }
+        return animations;
     }
 
     async loadAudio(key, src) {
@@ -109,6 +155,9 @@ class AssetManager {
                 case 'json':
                     promises.push(this.loadJSON(key, asset.src));
                     break;
+                case 'sprite':
+                    promises.push(this.loadSprite(key, asset.jsonSrc, asset.imageSrc));
+                    break;
             }
         }
 
@@ -134,10 +183,15 @@ class AssetManager {
         return this.data.get(key);
     }
 
+    getSprite(key) {
+        return this.sprites.get(key);
+    }
+
     unload(key) {
         this.images.delete(key);
         this.audio.delete(key);
         this.data.delete(key);
+        this.sprites.delete(key);
         this.assets.delete(key);
     }
 
@@ -145,6 +199,7 @@ class AssetManager {
         this.images.clear();
         this.audio.clear();
         this.data.clear();
+        this.sprites.clear();
         this.assets.clear();
         this.loadingPromises.clear();
     }

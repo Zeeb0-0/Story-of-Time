@@ -34,19 +34,8 @@ export class UIManager {
             }
         });
 
-        // Title Screen
-        const titleScreen = document.createElement('div');
-        titleScreen.id = 'title-screen';
-        titleScreen.innerHTML = `
-            <div class="title-content">
-                <h1>Game Title</h1>
-                <div class="menu-buttons">
-                    <button id="startGame">Start Game</button>
-                    <button id="options">Options</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(titleScreen);
+        // Title Screen - Use existing element in HTML
+        const titleScreen = document.getElementById('title-screen');
         this.screens.set('title', {
             element: titleScreen,
             show: () => {
@@ -55,6 +44,55 @@ export class UIManager {
             },
             hide: () => {
                 titleScreen.style.display = 'none';
+            }
+        });
+
+        // Game Container
+        const gameContainer = document.getElementById('game-container');
+        this.screens.set('game', {
+            element: gameContainer,
+            show: () => {
+                gameContainer.style.display = 'flex';
+            },
+            hide: () => {
+                gameContainer.style.display = 'none';
+            }
+        });
+
+        // Settings Menu
+        const settingsMenu = document.getElementById('settings-menu');
+        this.screens.set('settings', {
+            element: settingsMenu,
+            show: () => {
+                settingsMenu.style.display = 'flex';
+            },
+            hide: () => {
+                settingsMenu.style.display = 'none';
+            }
+        });
+
+        // Save Slots Menu
+        const saveSlotsMenu = document.getElementById('save-slots-menu');
+        this.screens.set('saveSlots', {
+            element: saveSlotsMenu,
+            show: () => {
+                saveSlotsMenu.style.display = 'flex';
+            },
+            hide: () => {
+                saveSlotsMenu.style.display = 'none';
+            }
+        });
+
+        // Statistics Menu - Add this new screen
+        const statisticsMenu = document.getElementById('statistics-menu');
+        this.screens.set('statistics', {
+            element: statisticsMenu,
+            show: () => {
+                statisticsMenu.style.display = 'flex';
+                this.updateStatisticsDisplay();
+            },
+            hide: () => {
+                statisticsMenu.style.display = 'none';
             }
         });
     }
@@ -71,14 +109,107 @@ export class UIManager {
     }
 
     bindMenuButtons() {
-        document.getElementById('startGame')?.addEventListener('click', () => {
+        // Use the correct IDs from the HTML
+        document.getElementById('startJourney')?.addEventListener('click', () => {
             this.hideAll();
+            this.screens.get('game').show();
             window.main.game.start();
+            DEBUG.log('Game started from title screen', 'info');
         });
 
-        document.getElementById('options')?.addEventListener('click', () => {
-            this.showOptions();
+        document.getElementById('continueJourney')?.addEventListener('click', () => {
+            this.switchScreen('saveSlots');
+            DEBUG.log('Showing save slots for continue journey', 'info');
         });
+
+        document.getElementById('settings')?.addEventListener('click', () => {
+            this.switchScreen('settings');
+            DEBUG.log('Showing settings menu', 'info');
+        });
+
+        document.getElementById('statistics')?.addEventListener('click', () => {
+            this.switchScreen('statistics');
+            DEBUG.log('Showing statistics screen', 'info');
+        });
+
+        // Close buttons
+        document.getElementById('closeSettings')?.addEventListener('click', () => {
+            this.screens.get('settings').hide();
+            this.screens.get('title').show();
+        });
+
+        document.getElementById('closeSaveMenu')?.addEventListener('click', () => {
+            this.screens.get('saveSlots').hide();
+            this.screens.get('title').show();
+        });
+
+        // Add statistics close button handler
+        document.getElementById('closeStatistics')?.addEventListener('click', () => {
+            this.screens.get('statistics').hide();
+            this.screens.get('title').show();
+        });
+    }
+
+    // New method to update statistics display
+    updateStatisticsDisplay() {
+        try {
+            // Get player statistics from localStorage or use default values
+            const stats = this.getPlayerStatistics();
+            
+            // Update the statistics display
+            document.getElementById('statPlayTime').textContent = this.formatTime(stats.playTime);
+            document.getElementById('statLevelsCompleted').textContent = stats.levelsCompleted;
+            document.getElementById('statCheckpoints').textContent = stats.checkpoints;
+            document.getElementById('statJumps').textContent = stats.jumps;
+            document.getElementById('statDistance').textContent = `${stats.distance} px`;
+            document.getElementById('statDeaths').textContent = stats.deaths;
+            document.getElementById('statCoins').textContent = stats.coins;
+            document.getElementById('statPowerups').textContent = stats.powerups;
+            document.getElementById('statScore').textContent = stats.score;
+            
+            DEBUG.log('Statistics display updated', 'info');
+        } catch (error) {
+            DEBUG.log(`Failed to update statistics: ${error.message}`, 'error');
+        }
+    }
+
+    // Helper method to get player statistics
+    getPlayerStatistics() {
+        // Try to get stats from localStorage
+        const statsKey = `${CONFIG.CURRENT_USER}_statistics`;
+        let stats;
+        
+        try {
+            const savedStats = localStorage.getItem(statsKey);
+            if (savedStats) {
+                stats = JSON.parse(savedStats);
+            }
+        } catch (error) {
+            DEBUG.log('Failed to load statistics from localStorage', 'error');
+        }
+        
+        // Return saved stats or default values
+        return stats || {
+            playTime: 0,
+            levelsCompleted: 0,
+            checkpoints: 0,
+            jumps: 0,
+            distance: 0,
+            deaths: 0,
+            coins: 0,
+            powerups: 0,
+            score: 0,
+            lastUpdate: this.lastUpdate
+        };
+    }
+
+    // Helper method to format time in hours, minutes, seconds
+    formatTime(totalSeconds) {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        return `${hours}h ${minutes}m ${seconds}s`;
     }
 
     handleResize() {

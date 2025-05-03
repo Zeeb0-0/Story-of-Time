@@ -8,7 +8,6 @@ export class Player {
         this.currentAnimation = null;
         this.position = { x: 0, y: 0 };
         this.lastUpdate = '2025-05-02 13:04:37';
-        this.position = { x: 0, y: 0 };
         this.velocity = { x: 0, y: 0 };
         this.size = { width: 32, height: 32 };
         this.speed = 200;
@@ -22,6 +21,24 @@ export class Player {
             right: false,
             jump: false
         };
+        this.sprite = null;
+    }
+
+    // Add the missing loadSprite method that main.js is calling
+    loadSprite(spriteImage) {
+        if (!spriteImage) {
+            DEBUG.log('Failed to load player sprite: Image is null', 'error');
+            return;
+        }
+        
+        this.sprite = spriteImage;
+        this.size = { width: 96, height: 96 }; // Update size based on sprite
+        DEBUG.log('Player sprite loaded successfully', 'info');
+    }
+
+    spawn() {
+        DEBUG.log('Player spawned', 'info');
+        this.position = { x: 100, y: 300 }; // Set initial position
     }
 
     async loadSprites() {
@@ -50,23 +67,7 @@ export class Player {
         if (this.currentAnimation) {
             this.currentAnimation.update(deltaTime);
         }
-    }
 
-    render(ctx) {
-        if (this.currentAnimation) {
-            this.currentAnimation.draw(ctx, this.position.x, this.position.y);
-        }
-    }
-
-    setAnimation(name) {
-        if (this.animations.has(name) && this.currentAnimation !== this.animations.get(name)) {
-            this.currentAnimation = this.animations.get(name);
-            this.currentAnimation.reset();
-            this.currentAnimation.play();
-        }
-    }
-
-    update(deltaTime) {
         // Handle horizontal movement
         this.velocity.x = 0;
         if (this.input.left) this.velocity.x = -this.speed;
@@ -88,13 +89,35 @@ export class Player {
     }
 
     render(ctx) {
-        ctx.fillStyle = '#00ff00';
-        ctx.fillRect(
-            this.position.x,
-            this.position.y,
-            this.size.width,
-            this.size.height
-        );
+        if (this.sprite) {
+            // Draw the sprite if available
+            ctx.drawImage(
+                this.sprite,
+                0, 0,  // Source x, y (first frame)
+                this.size.width, this.size.height, // Source width, height
+                this.position.x, this.position.y, // Destination x, y
+                this.size.width, this.size.height // Destination width, height
+            );
+        } else if (this.currentAnimation) {
+            this.currentAnimation.draw(ctx, this.position.x, this.position.y);
+        } else {
+            // Fallback to simple rectangle if no sprite is loaded
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(
+                this.position.x,
+                this.position.y,
+                this.size.width,
+                this.size.height
+            );
+        }
+    }
+
+    setAnimation(name) {
+        if (this.animations.has(name) && this.currentAnimation !== this.animations.get(name)) {
+            this.currentAnimation = this.animations.get(name);
+            this.currentAnimation.reset();
+            this.currentAnimation.play();
+        }
     }
 
     handleInput(event) {

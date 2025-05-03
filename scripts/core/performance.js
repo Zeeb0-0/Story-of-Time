@@ -57,6 +57,26 @@ class PerformanceMonitor {
         }
     }
 
+    // Add the missing recordFrame method
+    recordFrame() {
+        if (!this.active) return;
+        
+        this.frames++;
+        const now = performance.now();
+        
+        if (now >= this.lastTime + 1000) {
+            this.metrics.fps = this.frames;
+            this.samples.fps[this.currentSample] = this.frames;
+            this.metrics.frameTime = (now - this.lastTime) / this.frames;
+            this.metrics.memory = this.getMemoryUsage();
+            this.metrics.lastUpdate = '2025-05-02 11:50:45';
+            
+            this.frames = 0;
+            this.lastTime = now;
+            this.currentSample = (this.currentSample + 1) % 60;
+        }
+    }
+
     recordDrawCall() {
         if (this.active) this.drawCalls++;
     }

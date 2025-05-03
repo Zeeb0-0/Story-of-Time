@@ -90,6 +90,61 @@
         </div>
     </div>
 
+    <!-- Statistics Screen -->
+    <div id="statistics-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-content">
+            <h2>Player Statistics</h2>
+            <div class="statistics-container">
+                <div class="stat-group">
+                    <h3>Game Progress</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Play Time:</span>
+                        <span class="stat-value" id="statPlayTime">0h 0m 0s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Levels Completed:</span>
+                        <span class="stat-value" id="statLevelsCompleted">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Checkpoints Reached:</span>
+                        <span class="stat-value" id="statCheckpoints">0</span>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <h3>Player Actions</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Jumps:</span>
+                        <span class="stat-value" id="statJumps">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Distance Traveled:</span>
+                        <span class="stat-value" id="statDistance">0 px</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Deaths:</span>
+                        <span class="stat-value" id="statDeaths">0</span>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <h3>Collection</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Coins:</span>
+                        <span class="stat-value" id="statCoins">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Powerups:</span>
+                        <span class="stat-value" id="statPowerups">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value" id="statScore">0</span>
+                    </div>
+                </div>
+            </div>
+            <button class="pixel-button" id="closeStatistics">Close</button>
+        </div>
+    </div>
+
     <!-- Debug Panel (hidden by default) -->
     <div id="debug-panel" style="display: none;"></div>
 

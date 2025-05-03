@@ -13,28 +13,25 @@ export class SpriteLoader {
 
     async loadSprite(name, jsonPath, imagePath) {
         try {
-            // Load both the JSON data and the spritesheet image
-            const [data, image] = await Promise.all([
-                fetch(jsonPath).then(response => response.json()),
-                this._loadImage(imagePath)
-            ]);
-
+            // Use assetManager's loadSprite method to load the sprite
+            const spriteData = await assetManager.loadSprite(name, jsonPath, imagePath);
+            
             // Process sprite data
-            const spriteData = {
+            const processedSprite = {
                 name,
-                image,
+                image: spriteData.image,
                 frames: new Map(),
                 animations: new Map(),
                 metadata: {
-                    ...data.meta,
+                    ...spriteData.data.meta,
                     lastUpdate: this.metadata.lastUpdate,
                     user: this.metadata.user
                 }
             };
 
             // Process frames
-            data.frames.forEach((frame, index) => {
-                spriteData.frames.set(frame.filename, {
+            spriteData.data.frames.forEach((frame, index) => {
+                processedSprite.frames.set(frame.filename, {
                     index,
                     ...frame.frame,
                     duration: frame.duration
@@ -42,24 +39,26 @@ export class SpriteLoader {
             });
 
             // Process animations from frameTags
-            data.meta.frameTags.forEach(tag => {
-                if (!spriteData.animations.has(tag.name)) {
-                    spriteData.animations.set(tag.name, {
-                        name: tag.name,
-                        from: tag.from,
-                        to: tag.to,
-                        direction: tag.direction,
-                        frames: this._getFramesForTag(data.frames, tag)
-                    });
-                }
-            });
+            if (spriteData.data.meta && spriteData.data.meta.frameTags) {
+                spriteData.data.meta.frameTags.forEach(tag => {
+                    if (!processedSprite.animations.has(tag.name)) {
+                        processedSprite.animations.set(tag.name, {
+                            name: tag.name,
+                            from: tag.from,
+                            to: tag.to,
+                            direction: tag.direction,
+                            frames: this._getFramesForTag(spriteData.data.frames, tag)
+                        });
+                    }
+                });
+            }
 
-            this.sprites.set(name, spriteData);
+            this.sprites.set(name, processedSprite);
             DEBUG.log(`Loaded sprite: ${name}`, 'info');
-            return spriteData;
+            return processedSprite;
 
         } catch (error) {
-            DEBUG.log(`Failed to load sprite: ${name}`, 'error');
+            DEBUG.log(`Failed to load sprite: ${name} - ${error.message}`, 'error');
             throw error;
         }
     }

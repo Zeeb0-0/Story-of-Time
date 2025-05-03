@@ -1,6 +1,7 @@
 import { CONFIG } from '../core/config.js';
 import DEBUG from '../utils/debug.js';
 import performanceMonitor from '../core/performance.js';
+import { Player } from './Player.js';
 
 export class Game {
     constructor() {
@@ -18,10 +19,17 @@ export class Game {
 
     async initialize() {
         try {
+            // Initialize canvas
             this.canvas = document.getElementById('gameCanvas');
             this.ctx = this.canvas.getContext('2d');
             this.setupCanvas();
+            
+            // Initialize player
+            this.player = new Player();
+            
+            // Bind events
             this.bindEvents();
+            
             DEBUG.log('Game initialized', 'info');
         } catch (error) {
             DEBUG.log('Game initialization failed', 'error');
