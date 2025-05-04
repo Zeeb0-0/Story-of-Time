@@ -40,8 +40,46 @@ class Player {
         img: null,
         frameCount: 1,
         currentFrame: 0
+      },
+      // New animation states
+      hit: {
+        img: null,
+        frameCount: 2,
+        currentFrame: 0
+      },
+      attack: {
+        img: null,
+        frameCount: 3,
+        currentFrame: 0
+      },
+      dead: {
+        img: null,
+        frameCount: 4,
+        currentFrame: 0
+      },
+      'door-in': {
+        img: null,
+        frameCount: 8,
+        currentFrame: 0
+      },
+      'door-out': {
+        img: null,
+        frameCount: 8,
+        currentFrame: 0
       }
     }
+
+    this.health = 100
+    this.isHit = false
+    this.isDead = false
+    this.isTransitioning = false
+    this.animationLocked = false
+
+    // Add attack-related properties
+    this.isAttacking = false
+    this.attackCooldown = 0.5 // Half second cooldown between attacks
+    this.attackTimer = 0
+
     
     // Load the run spritesheet using your existing loadImage function
     this.loadSprites()
@@ -52,44 +90,55 @@ class Player {
     this.frameDuration = 0.1 // Time per frame in seconds
     this.facingDirection = 1 // 1 for right, -1 for left
     
-    // Improved hitbox that better matches the character's feet and body
+    // Single hitbox definition
+    const hitboxWidth = this.width * 0.2  // 20% of sprite width
+    const hitboxHeight = this.height * 0.4 // 40% of sprite height
+    
     this.hitboxOffset = {
-      x: this.width * 0.3,      // Move hitbox more to the center horizontally
-      y: this.height * 0.3,     // Start hitbox lower from the top
-      width: this.width * 0.2,  // Make hitbox narrower
-      height: this.height * 0.4 // Make hitbox shorter
+      width: hitboxWidth,
+      height: hitboxHeight,
+      x: (this.width - hitboxWidth) / 2,  // Center the hitbox
+      y: this.height * 0.3                // Start hitbox 30% from top
     }
   }
   
   async loadSprites() {
     try {
+      // Load existing sprites
       this.sprites.idle.img = await loadImage('./images/player/idle.png')
       this.sprites.run.img = await loadImage('./images/player/run.png')
       this.sprites.jump.img = await loadImage('./images/player/jump.png')
       this.sprites.fall.img = await loadImage('./images/player/fall.png')
+      
+      // Load new sprites
+      this.sprites.hit.img = await loadImage('./images/player/hit.png')
+      this.sprites.attack.img = await loadImage('./images/player/attack.png')
+      this.sprites.dead.img = await loadImage('./images/player/dead.png')
+      this.sprites['door-in'].img = await loadImage('./images/player/door-in.png')
+      this.sprites['door-out'].img = await loadImage('./images/player/door-out.png')
     } catch (error) {
       console.error('Failed to load player sprites:', error)
     }
   }
 
+
   draw(c) {
-    // Get the current sprite based on state
     const sprite = this.sprites[this.state]
     
-    // Check if we have a valid sprite for the current state
     if (sprite && sprite.img) {
-      // Save context state
       c.save()
       
-      // Set up for flipping if facing left
+      // Calculate the center point of the sprite
+      const centerX = this.x + this.width / 2
+      
       if (this.facingDirection === -1) {
-        c.translate(this.x + this.width, this.y)
+        c.translate(centerX, this.y)
         c.scale(-1, 1)
+        c.translate(-this.width / 2, 0)
       } else {
         c.translate(this.x, this.y)
       }
       
-      // Draw the sprite
       c.drawImage(
         sprite.img,
         sprite.currentFrame * this.frameWidth, 0,
@@ -98,10 +147,8 @@ class Player {
         this.width, this.height
       )
       
-      // Restore context state
       c.restore()
       
-      // Debug mode visualization
       if (window.debugMode) {
         this.drawDebugInfo(c)
       }
@@ -109,8 +156,9 @@ class Player {
   }
 
   drawDebugInfo(c) {
-    // Draw hitbox
     const hitbox = this.getHitbox()
+    
+    // Draw hitbox
     c.strokeStyle = 'lime'
     c.lineWidth = 2
     c.strokeRect(
@@ -120,22 +168,24 @@ class Player {
       hitbox.height
     )
 
-     // Draw sprite bounds
-     c.strokeStyle = 'yellow'
-     c.lineWidth = 1
-     c.strokeRect(this.x, this.y, this.width, this.height)
- 
-     // Calculate center based on hitbox position instead of sprite position
-     const centerX = hitbox.x + hitbox.width / 2
-     const centerY = hitbox.y + hitbox.height / 2
-     
-     // Draw center point
-     c.beginPath()
-     c.arc(centerX, centerY, 3, 0, Math.PI * 2)
-     c.fillStyle = 'red'
-     c.fill()
+    // Draw sprite bounds
+    c.strokeStyle = 'yellow'
+    c.lineWidth = 1
+    c.strokeRect(this.x, this.y, this.width, this.height)
 
-    // Draw debug info with position relative to hitbox
+    // Calculate centers
+    const center = {
+      x: hitbox.x + hitbox.width / 2,
+      y: hitbox.y + hitbox.height / 2
+    }
+    
+    // Draw center point
+    c.beginPath()
+    c.arc(center.x, center.y, 3, 0, Math.PI * 2)
+    c.fillStyle = 'lime'
+    c.fill()
+
+    // Debug text
     c.font = '12px monospace'
     c.fillStyle = 'white'
     c.strokeStyle = 'black'
@@ -143,38 +193,49 @@ class Player {
     
     const debugInfo = [
       `Pos: (${Math.round(this.x)}, ${Math.round(this.y)})`,
-      `Hitbox: (${Math.round(hitbox.x)}, ${Math.round(hitbox.y)})`,
+      `Center: (${Math.round(center.x)}, ${Math.round(center.y)})`,
       `Vel: (${this.velocity.x.toFixed(1)}, ${this.velocity.y.toFixed(1)})`,
       `Facing: ${this.facingDirection === 1 ? 'right' : 'left'}`,
       `State: ${this.state}`,
-      `OnGround: ${this.isOnGround}`
+      `Health: ${this.health}`,
+      `OnGround: ${this.isOnGround}`,
+      `Attacking: ${this.isAttacking}`,
+      `Attack CD: ${this.attackTimer.toFixed(2)}`,  // Add attack cooldown to debug info
+      `Hit: ${this.isHit}`,
+      `Dead: ${this.isDead}`,
+      `Transitioning: ${this.isTransitioning}`
     ]
 
-    // Position debug text based on facing direction
     const textX = this.facingDirection === -1 ? 
-      hitbox.x + hitbox.width + 5 : // When facing left, put text to the right
-      hitbox.x - 5;                 // When facing right, put text to the left
-      
+      hitbox.x + hitbox.width + 5 : 
+      hitbox.x - 5
+    
     debugInfo.forEach((text, index) => {
-      const yPos = hitbox.y - 10 - (index * 15)
+      const yPos = this.y - 10 - (index * 15)
       c.strokeText(text, textX, yPos)
       c.fillText(text, textX, yPos)
     })
   }
-  
-  drawHitbox(c) {
-    c.fillStyle = 'rgba(0, 255, 0, 0.3)'
-    c.fillRect(
-      this.x + this.hitboxOffset.x,
-      this.y + this.hitboxOffset.y,
-      this.hitboxOffset.width,
-      this.hitboxOffset.height
-    )
-  }
 
   updateAnimation(deltaTime) {
-    // Update animation state based on movement
-    if (this.velocity.y < 0) {
+    // Determine animation state
+    if (this.isAttacking) {
+      this.state = 'attack'
+      
+      // Update attack animation
+      this.frameTimer += deltaTime
+      if (this.frameTimer >= this.frameDuration) {
+        this.frameTimer = 0
+        this.sprites.attack.currentFrame++
+        
+        // Check if attack animation is complete
+        if (this.sprites.attack.currentFrame >= this.sprites.attack.frameCount) {
+          this.isAttacking = false
+          this.sprites.attack.currentFrame = 0
+        }
+        return
+      }
+    } else if (this.velocity.y < 0) {
       this.state = 'jump'
     } else if (this.velocity.y > 0) {
       this.state = 'fall'
@@ -184,26 +245,79 @@ class Player {
       this.state = 'idle'
     }
     
-    // Update facing direction
-    if (this.velocity.x > 0) this.facingDirection = 1
-    else if (this.velocity.x < 0) this.facingDirection = -1
+    // Update facing direction (only if not attacking)
+    if (!this.isAttacking) {
+      if (this.velocity.x > 0) this.facingDirection = 1
+      else if (this.velocity.x < 0) this.facingDirection = -1
+    }
     
     // Update animation frame
     this.frameTimer += deltaTime
     if (this.frameTimer >= this.frameDuration) {
       this.frameTimer = 0
-      
-      // Get the current sprite
       const sprite = this.sprites[this.state]
       if (sprite) {
-        // Advance the frame
         sprite.currentFrame = (sprite.currentFrame + 1) % sprite.frameCount
+      }
+    }
+  }
+
+  takeDamage(amount) {
+    if (!this.isHit && !this.isDead) {
+      this.health = Math.max(0, this.health - amount)
+      this.isHit = true
+      
+      if (this.health === 0) {
+        this.isDead = true
+      }
+    }
+  }
+
+  attack() {
+    if (!this.isAttacking && !this.isHit && !this.isDead && !this.isTransitioning) {
+      this.isAttacking = true
+    }
+  }
+
+  enterDoor() {
+    if (!this.isTransitioning && !this.isDead) {
+      this.isTransitioning = true
+      this.isEnteringDoor = true
+    }
+  }
+
+  exitDoor() {
+    if (!this.isTransitioning && !this.isDead) {
+      this.isTransitioning = true
+      this.isEnteringDoor = false
+    }
+  }
+
+  // Update handleInput to include attack
+  handleInput(keys) {
+    // Only allow movement if not in a locked animation
+    if (!this.animationLocked && !this.isDead) {
+      this.velocity.x = 0
+      if (keys.d.pressed) {
+        this.velocity.x = X_VELOCITY
+      } else if (keys.a.pressed) {
+        this.velocity.x = -X_VELOCITY
+      }
+      
+      // Handle attack input
+      if (keys.space.pressed) {
+        this.attack()
       }
     }
   }
 
   update(deltaTime, collisionBlocks) {
     if (!deltaTime) return
+    
+    // Update attack cooldown
+    if (this.attackTimer > 0) {
+      this.attackTimer = Math.max(0, this.attackTimer - deltaTime)
+    }
     
     this.applyGravity(deltaTime)
     
@@ -240,36 +354,40 @@ class Player {
   }
 
   handleInput(keys) {
-    this.velocity.x = 0
-    if (keys.d.pressed) {
-      this.velocity.x = X_VELOCITY
-    } else if (keys.a.pressed) {
-      this.velocity.x = -X_VELOCITY
+    // Only handle movement if not attacking
+    if (!this.isAttacking) {
+      this.velocity.x = 0
+      if (keys.d.pressed) {
+        this.velocity.x = X_VELOCITY
+      } else if (keys.a.pressed) {
+        this.velocity.x = -X_VELOCITY
+      }
+    }
+
+    // Handle attack input
+    if (keys.space.pressed && this.attackTimer === 0 && !this.isAttacking) {
+      this.attack()
     }
   }
 
-  // Get hitbox coordinates for collision detection
-  // Update getHitbox to be more precise with the sprite direction
-  getHitbox() {
-    let hitboxX;
-    
-    if (this.facingDirection === -1) {
-      // When facing left, adjust hitbox position
-      hitboxX = this.x + (this.width - this.hitboxOffset.x - this.hitboxOffset.width);
-    } else {
-      // When facing right, use normal offset
-      hitboxX = this.x + this.hitboxOffset.x;
+  attack() {
+    if (this.attackTimer === 0 && !this.isAttacking) {
+      this.isAttacking = true
+      this.attackTimer = this.attackCooldown
+      // Reset the attack animation frame
+      this.sprites.attack.currentFrame = 0
     }
+  }
 
+  getHitbox() {
     return {
-      x: hitboxX,
+      x: this.x + this.hitboxOffset.x,
       y: this.y + this.hitboxOffset.y,
       width: this.hitboxOffset.width,
       height: this.hitboxOffset.height
     }
   }
 
-  // Also update the checkForHorizontalCollisions method to handle flipped hitbox
   checkForHorizontalCollisions(collisionBlocks) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
@@ -277,37 +395,27 @@ class Player {
     for (let i = 0; i < collisionBlocks.length; i++) {
       const collisionBlock = collisionBlocks[i]
       
-      // Check if a collision exists
       if (
         hitbox.x <= collisionBlock.x + collisionBlock.width &&
         hitbox.x + hitbox.width >= collisionBlock.x &&
         hitbox.y + hitbox.height >= collisionBlock.y &&
         hitbox.y <= collisionBlock.y + collisionBlock.height
       ) {
-        // When going left
         if (this.velocity.x < 0) {
-          const hitboxOffset = this.facingDirection === -1 ?
-            (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
-            this.hitboxOffset.x;
-          
-          this.x = collisionBlock.x + collisionBlock.width - hitboxOffset + buffer;
-          break;
+          const adjustedX = collisionBlock.x + collisionBlock.width + buffer
+          this.x = adjustedX - this.hitboxOffset.x
+          break
         }
         
-        // When going right
         if (this.velocity.x > 0) {
-          const hitboxOffset = this.facingDirection === -1 ?
-            (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
-            this.hitboxOffset.x;
-            
-          this.x = collisionBlock.x - this.hitboxOffset.width - hitboxOffset - buffer;
-          break;
+          const adjustedX = collisionBlock.x - hitbox.width - buffer
+          this.x = adjustedX - this.hitboxOffset.x
+          break
         }
       }
     }
   }
 
-  // Update vertical collision check to use the correct hitbox position
   checkForVerticalCollisions(collisionBlocks) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
@@ -321,19 +429,15 @@ class Player {
         hitbox.y + hitbox.height >= collisionBlock.y &&
         hitbox.y <= collisionBlock.y + collisionBlock.height
       ) {
-        // Going up
         if (this.velocity.y < 0) {
           this.velocity.y = 0
-          const hitboxOffset = this.hitboxOffset.y
-          this.y = collisionBlock.y + collisionBlock.height - hitboxOffset + buffer
+          this.y = collisionBlock.y + collisionBlock.height - this.hitboxOffset.y + buffer
           break
         }
         
-        // Going down
         if (this.velocity.y > 0) {
           this.velocity.y = 0
-          const hitboxOffset = this.hitboxOffset.y
-          this.y = collisionBlock.y - hitbox.height - hitboxOffset - buffer
+          this.y = collisionBlock.y - hitbox.height - this.hitboxOffset.y - buffer
           this.isOnGround = true
           break
         }
@@ -341,14 +445,11 @@ class Player {
     }
   }
 
-  // Update platform collision check as well
   checkPlatformCollisions(platforms, deltaTime) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
     
     for (let platform of platforms) {
-      // Check if the bottom of the hitbox is at or slightly above the platform
-      // and the player is moving downward
       if (
         hitbox.x + hitbox.width >= platform.x &&
         hitbox.x <= platform.x + platform.width &&
@@ -356,23 +457,14 @@ class Player {
         this.velocity.y > 0
       ) {
         this.velocity.y = 0
-        const hitboxOffset = this.hitboxOffset.y
-        this.y = platform.y - hitbox.height - hitboxOffset - buffer
+        this.y = platform.y - hitbox.height - this.hitboxOffset.y - buffer
         this.isOnGround = true
         return
       }
     }
     
-    // If no platform collision was detected and we're not on ground from block collisions
     if (this.velocity.y > 0 && this.isOnGround) {
       this.isOnGround = false
     }
-  }
-
-  // Add this helper method to make hitbox offset calculations clearer
-  getHitboxOffset() {
-    return this.facingDirection === -1 ?
-      (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
-      this.hitboxOffset.x;
   }
 }

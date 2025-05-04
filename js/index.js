@@ -152,7 +152,42 @@ const keys = {
   d: {
     pressed: false,
   },
+  space: {  // Add this
+    pressed: false
+  }
 }
+
+// Add space key to your event listeners
+addEventListener('keydown', ({ code }) => {
+  switch (code) {
+    case 'KeyW':
+      if (player.isOnGround) player.jump()
+      break
+    case 'KeyD':
+      keys.d.pressed = true
+      break
+    case 'KeyA':
+      keys.a.pressed = true
+      break
+    case 'Space':  // Add this
+      keys.space.pressed = true
+      break
+  }
+})
+
+addEventListener('keyup', ({ code }) => {
+  switch (code) {
+    case 'KeyD':
+      keys.d.pressed = false
+      break
+    case 'KeyA':
+      keys.a.pressed = false
+      break
+    case 'Space':  // Add this
+      keys.space.pressed = false
+      break
+  }
+})
 
 let lastTime = performance.now()
 let animationFrameId = null
