@@ -158,7 +158,7 @@ const keys = {
 addEventListener('keydown', ({ code }) => {
   switch (code) {
     case 'KeyW':
-      if (player.isOnGround) player.jump()
+      player.jump()  // The jump method will check isOnGround internally
       break
     case 'KeyD':
       keys.d.pressed = true

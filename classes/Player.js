@@ -1,5 +1,5 @@
 const X_VELOCITY = 100
-const JUMP_POWER = 250
+const JUMP_POWER = 300
 const GRAVITY = 580
 
 class Player {
@@ -16,9 +16,17 @@ class Player {
     this.height = size
     this.width = (this.frameWidth / this.frameHeight) * size
     
+    // Add ground state buffer properties
+    this.groundBufferTime = 0.5  // Time in seconds before losing ground state
+    this.timeOffGround = 0      // Track how long we've been off the ground
+    this.hasGroundContact = false // Actual physical ground contact this frame
+
     this.velocity = velocity
     this.gravity = 580 // Make sure gravity is defined
     this.isOnGround = false
+    this.coyoteTimeCounter = 0
+    this.COYOTE_TIME = 0.1  // Seconds of coyote time (adjust as needed) THIS IS JUST A BUFFER RAAAAA
+    this.lastGroundY = y    // Track last grounded Y position
     
     // Animation state
     this.state = 'idle'
@@ -360,6 +368,7 @@ class Player {
     }
   }
 
+
   getAttackHitbox() {
     // Position the attack hitbox based on facing direction
     const x = this.facingDirection === 1 
@@ -391,8 +400,11 @@ class Player {
   update(deltaTime, collisionBlocks) {
     if (!deltaTime) return
 
-    // Apply gravity before movement
-    if (!this.isOnGround) {
+    // Store previous ground contact state
+    this.hasGroundContact = false // Reset physical ground contact
+
+    // Apply gravity if we don't have actual ground contact
+    if (!this.hasGroundContact) {
       this.velocity.y += GRAVITY * deltaTime
     }
 
@@ -402,10 +414,27 @@ class Player {
 
     // Update vertical position and check collisions
     this.y += this.velocity.y * deltaTime
+    
+    // Check collisions that might set hasGroundContact to true
     this.checkForVerticalCollisions(collisionBlocks)
-
-    // Check platform collisions
     this.checkPlatformCollisions(platforms)
+
+    // Update ground state buffer
+    if (this.hasGroundContact) {
+      // Reset timer when we have ground contact
+      this.timeOffGround = 0
+      this.isOnGround = true
+    } else {
+      // Increment time off ground
+      this.timeOffGround += deltaTime
+      // Only set isOnGround to false after buffer time has elapsed
+      if (this.timeOffGround >= this.groundBufferTime) {
+        this.isOnGround = false
+      }
+    }
+
+    // Cap falling speed
+    this.velocity.y = Math.min(this.velocity.y, 700)
 
     // Update animation state
     this.updateAnimation(deltaTime)
@@ -422,24 +451,46 @@ class Player {
         this.velocity.y > 0
       ) {
         this.velocity.y = 0
+        this.hasGroundContact = true  // Set physical contact instead of isOnGround
         const offset = hitbox.y - this.y
         this.y = platform.y - hitbox.height - offset
-        this.isOnGround = true
         return
       }
     }
+  }
+
+  checkForVerticalCollisions(collisionBlocks) {
+    const hitbox = this.getHitbox()
     
-    // Only set isOnGround to false if we're not already on solid ground
-    // This prevents losing ground state when walking off a platform onto solid ground
-    if (this.velocity.y > 0 && !this.isOnGround) {
-      this.isOnGround = false
+    for (const block of collisionBlocks) {
+      if (
+        hitbox.x < block.x + block.width &&
+        hitbox.x + hitbox.width > block.x &&
+        hitbox.y + hitbox.height > block.y &&
+        hitbox.y < block.y + block.height
+      ) {
+        if (this.velocity.y > 0) {
+          this.velocity.y = 0
+          this.hasGroundContact = true  // Set physical contact instead of isOnGround
+          const offset = hitbox.y - this.y
+          this.y = block.y - hitbox.height - offset
+        } else if (this.velocity.y < 0) {
+          this.velocity.y = 0
+          const offset = hitbox.y - this.y
+          this.y = block.y + block.height - offset
+        }
+      }
     }
   }
 
   jump() {
-    this.velocity.y = -JUMP_POWER
-    this.isOnGround = false
+    if (this.isOnGround) {
+      this.velocity.y = -JUMP_POWER
+      this.isOnGround = false
+      this.timeOffGround = this.groundBufferTime // Force buffer to expire on jump
+    }
   }
+
 
   updateHorizontalPosition(deltaTime) {
     this.x += this.velocity.x * deltaTime
@@ -487,55 +538,5 @@ class Player {
       }
     }
   }
-
-  checkForVerticalCollisions(collisionBlocks) {
-    const hitbox = this.getHitbox()
-    this.isOnGround = false // Reset ground check
-    
-    for (const block of collisionBlocks) {
-      if (
-        hitbox.x < block.x + block.width &&
-        hitbox.x + hitbox.width > block.x &&
-        hitbox.y + hitbox.height > block.y &&
-        hitbox.y < block.y + block.height
-      ) {
-        // Moving down (falling)
-        if (this.velocity.y > 0) {
-          this.velocity.y = 0
-          this.isOnGround = true
-          const offset = hitbox.y - this.y
-          this.y = block.y - hitbox.height - offset
-        }
-        // Moving up (jumping)
-        else if (this.velocity.y < 0) {
-          this.velocity.y = 0
-          const offset = hitbox.y - this.y
-          this.y = block.y + block.height - offset
-        }
-      }
-    }
-  }
-
-  checkPlatformCollisions(platforms, deltaTime) {
-    const buffer = 0.0001
-    const hitbox = this.getHitbox()
-    
-    for (let platform of platforms) {
-      if (
-        hitbox.x + hitbox.width >= platform.x &&
-        hitbox.x <= platform.x + platform.width &&
-        Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 &&
-        this.velocity.y > 0
-      ) {
-        this.velocity.y = 0
-        this.y = platform.y - hitbox.height - this.hitboxOffset.y - buffer
-        this.isOnGround = true
-        return
-      }
-    }
-    
-    if (this.velocity.y > 0 && this.isOnGround) {
-      this.isOnGround = false
-    }
-  }
+  
 }
