@@ -1,4 +1,4 @@
-let debugMode = false; // Add debug state at the top of the file
+window.debugMode = false; // Add debug state at the top of the file
 
 // Game controls event listeners
 window.addEventListener('keydown', (event) => {
@@ -8,7 +8,7 @@ window.addEventListener('keydown', (event) => {
     console.log('Debug mode:', debugMode ? 'ON' : 'OFF');
     return;
   }
-  
+
   if (UI && UI.isGameStarted) {
     switch (event.key) {
       case 'w':

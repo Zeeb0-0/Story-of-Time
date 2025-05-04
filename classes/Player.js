@@ -120,20 +120,22 @@ class Player {
       hitbox.height
     )
 
-    // Draw sprite bounds
-    c.strokeStyle = 'yellow'
-    c.lineWidth = 1
-    c.strokeRect(this.x, this.y, this.width, this.height)
+     // Draw sprite bounds
+     c.strokeStyle = 'yellow'
+     c.lineWidth = 1
+     c.strokeRect(this.x, this.y, this.width, this.height)
+ 
+     // Calculate center based on hitbox position instead of sprite position
+     const centerX = hitbox.x + hitbox.width / 2
+     const centerY = hitbox.y + hitbox.height / 2
+     
+     // Draw center point
+     c.beginPath()
+     c.arc(centerX, centerY, 3, 0, Math.PI * 2)
+     c.fillStyle = 'red'
+     c.fill()
 
-    // Draw center point
-    const centerX = this.x + this.width / 2
-    const centerY = this.y + this.height / 2
-    c.beginPath()
-    c.arc(centerX, centerY, 3, 0, Math.PI * 2)
-    c.fillStyle = 'red'
-    c.fill()
-
-    // Draw debug text
+    // Draw debug info with position relative to hitbox
     c.font = '12px monospace'
     c.fillStyle = 'white'
     c.strokeStyle = 'black'
@@ -141,17 +143,22 @@ class Player {
     
     const debugInfo = [
       `Pos: (${Math.round(this.x)}, ${Math.round(this.y)})`,
+      `Hitbox: (${Math.round(hitbox.x)}, ${Math.round(hitbox.y)})`,
       `Vel: (${this.velocity.x.toFixed(1)}, ${this.velocity.y.toFixed(1)})`,
+      `Facing: ${this.facingDirection === 1 ? 'right' : 'left'}`,
       `State: ${this.state}`,
       `OnGround: ${this.isOnGround}`
     ]
 
-    // Draw text with outline for better visibility
+    // Position debug text based on facing direction
+    const textX = this.facingDirection === -1 ? 
+      hitbox.x + hitbox.width + 5 : // When facing left, put text to the right
+      hitbox.x - 5;                 // When facing right, put text to the left
+      
     debugInfo.forEach((text, index) => {
-      const xPos = this.x
-      const yPos = this.y - 10 - (index * 15)
-      c.strokeText(text, xPos, yPos)
-      c.fillText(text, xPos, yPos)
+      const yPos = hitbox.y - 10 - (index * 15)
+      c.strokeText(text, textX, yPos)
+      c.fillText(text, textX, yPos)
     })
   }
   
@@ -242,65 +249,91 @@ class Player {
   }
 
   // Get hitbox coordinates for collision detection
+  // Update getHitbox to be more precise with the sprite direction
   getHitbox() {
+    let hitboxX;
+    
+    if (this.facingDirection === -1) {
+      // When facing left, adjust hitbox position
+      hitboxX = this.x + (this.width - this.hitboxOffset.x - this.hitboxOffset.width);
+    } else {
+      // When facing right, use normal offset
+      hitboxX = this.x + this.hitboxOffset.x;
+    }
+
     return {
-      x: this.x + this.hitboxOffset.x,
+      x: hitboxX,
       y: this.y + this.hitboxOffset.y,
       width: this.hitboxOffset.width,
       height: this.hitboxOffset.height
     }
   }
 
+  // Also update the checkForHorizontalCollisions method to handle flipped hitbox
   checkForHorizontalCollisions(collisionBlocks) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
     
     for (let i = 0; i < collisionBlocks.length; i++) {
       const collisionBlock = collisionBlocks[i]
-      // Check if a collision exists on all axes
+      
+      // Check if a collision exists
       if (
         hitbox.x <= collisionBlock.x + collisionBlock.width &&
         hitbox.x + hitbox.width >= collisionBlock.x &&
         hitbox.y + hitbox.height >= collisionBlock.y &&
         hitbox.y <= collisionBlock.y + collisionBlock.height
       ) {
-        // Check collision while player is going left
-        if (this.velocity.x < -0) {
-          this.x = collisionBlock.x + collisionBlock.width - this.hitboxOffset.x + buffer
-          break
+        // When going left
+        if (this.velocity.x < 0) {
+          const hitboxOffset = this.facingDirection === -1 ?
+            (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
+            this.hitboxOffset.x;
+          
+          this.x = collisionBlock.x + collisionBlock.width - hitboxOffset + buffer;
+          break;
         }
-        // Check collision while player is going right
+        
+        // When going right
         if (this.velocity.x > 0) {
-          this.x = collisionBlock.x - hitbox.width - this.hitboxOffset.x - buffer
-          break
+          const hitboxOffset = this.facingDirection === -1 ?
+            (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
+            this.hitboxOffset.x;
+            
+          this.x = collisionBlock.x - this.hitboxOffset.width - hitboxOffset - buffer;
+          break;
         }
       }
     }
   }
 
+  // Update vertical collision check to use the correct hitbox position
   checkForVerticalCollisions(collisionBlocks) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
     
     for (let i = 0; i < collisionBlocks.length; i++) {
       const collisionBlock = collisionBlocks[i]
-      // If a collision exists
+      
       if (
         hitbox.x <= collisionBlock.x + collisionBlock.width &&
         hitbox.x + hitbox.width >= collisionBlock.x &&
         hitbox.y + hitbox.height >= collisionBlock.y &&
         hitbox.y <= collisionBlock.y + collisionBlock.height
       ) {
-        // Check collision while player is going up
+        // Going up
         if (this.velocity.y < 0) {
           this.velocity.y = 0
-          this.y = collisionBlock.y + collisionBlock.height - this.hitboxOffset.y + buffer
+          const hitboxOffset = this.hitboxOffset.y
+          this.y = collisionBlock.y + collisionBlock.height - hitboxOffset + buffer
           break
         }
-        // Check collision while player is going down
+        
+        // Going down
         if (this.velocity.y > 0) {
           this.velocity.y = 0
-          this.y = collisionBlock.y - hitbox.height - this.hitboxOffset.y - buffer
+          const hitboxOffset = this.hitboxOffset.y
+          this.y = collisionBlock.y - hitbox.height - hitboxOffset - buffer
           this.isOnGround = true
           break
         }
@@ -308,6 +341,7 @@ class Player {
     }
   }
 
+  // Update platform collision check as well
   checkPlatformCollisions(platforms, deltaTime) {
     const buffer = 0.0001
     const hitbox = this.getHitbox()
@@ -318,11 +352,12 @@ class Player {
       if (
         hitbox.x + hitbox.width >= platform.x &&
         hitbox.x <= platform.x + platform.width &&
-        Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 && // Allow a small tolerance for landing
+        Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 &&
         this.velocity.y > 0
       ) {
         this.velocity.y = 0
-        this.y = platform.y - hitbox.height - this.hitboxOffset.y - buffer
+        const hitboxOffset = this.hitboxOffset.y
+        this.y = platform.y - hitbox.height - hitboxOffset - buffer
         this.isOnGround = true
         return
       }
@@ -332,5 +367,12 @@ class Player {
     if (this.velocity.y > 0 && this.isOnGround) {
       this.isOnGround = false
     }
+  }
+
+  // Add this helper method to make hitbox offset calculations clearer
+  getHitboxOffset() {
+    return this.facingDirection === -1 ?
+      (this.width - this.hitboxOffset.x - this.hitboxOffset.width) :
+      this.hitboxOffset.x;
   }
 }

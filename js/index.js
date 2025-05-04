@@ -136,8 +136,8 @@ const renderStaticLayers = async () => {
 
 // Change xy coordinates to move player's default position
 const player = new Player({
-  x: 100,
-  y: 150,
+  x: 70,
+  y: 250,
   size: TILE_SIZE * 2,
   velocity: { x: 0, y: 0 },
 })
@@ -179,6 +179,24 @@ function animate() {
   c.scale(dpr, dpr)
   c.clearRect(0, 0, canvas.width, canvas.height)
   c.drawImage(backgroundCanvas, 0, 0)
+  
+  // Debug visualization of collision blocks and platforms
+  if (window.debugMode) {
+    // Draw collision blocks
+    collisionBlocks.forEach(block => {
+      c.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+      c.lineWidth = 1
+      c.strokeRect(block.x, block.y, block.width, block.height)
+    })
+    
+    // Draw platforms
+    platforms.forEach(platform => {
+      c.strokeStyle = 'rgba(0, 255, 0, 0.5)'
+      c.lineWidth = 1
+      c.strokeRect(platform.x, platform.y, platform.width, platform.height)
+    })
+  }
+  
   player.draw(c)
 
   // Debug overlay
@@ -192,7 +210,9 @@ function animate() {
     const debugInfo = [
       'Debug Mode ON',
       `FPS: ${Math.round(1 / deltaTime)}`,
-      `Time: ${deltaTime.toFixed(3)}ms`
+      `Time: ${deltaTime.toFixed(3)}ms`,
+      `Blocks: ${collisionBlocks.length}`,
+      `Platforms: ${platforms.length}`
     ]
 
     debugInfo.forEach((text, index) => {
