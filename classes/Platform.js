@@ -11,6 +11,14 @@ class Platform {
     c.fillRect(this.x, this.y, this.width, this.height)
   }
 
+  draw(c) {
+    if (window.debugMode) {
+      c.strokeStyle = 'rgba(0, 255, 0, 0.5)'
+      c.lineWidth = 1
+      c.strokeRect(this.x, this.y, this.width, this.height)
+    }
+  }
+
   checkCollision(player, deltaTime) {
     // Check only top-side collision
     return (

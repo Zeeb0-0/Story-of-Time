@@ -78,10 +78,6 @@ class Player {
     
     // Check if we have a valid sprite for the current state
     if (sprite && sprite.img) {
-      // Calculate the source rectangle from the spritesheet
-      const srcX = sprite.currentFrame * this.frameWidth
-      const srcY = 0
-      
       // Save context state
       c.save()
       
@@ -96,7 +92,7 @@ class Player {
       // Draw the sprite
       c.drawImage(
         sprite.img,
-        srcX, srcY,
+        sprite.currentFrame * this.frameWidth, 0,
         this.frameWidth, this.frameHeight,
         0, 0,
         this.width, this.height
@@ -105,12 +101,58 @@ class Player {
       // Restore context state
       c.restore()
       
-      // Debug hitbox visualization (uncomment to see)
-      //this.drawHitbox(c)
-//      // Fallback to red square if image not loaded
-      //c.fillStyle = 'rgba(255, 0, 0, 0.5)'
-      //c.fillRect(this.x, this.y, this.width, this.height)
+      // Debug mode visualization
+      if (window.debugMode) {
+        this.drawDebugInfo(c)
+      }
     }
+  }
+
+  drawDebugInfo(c) {
+    // Draw hitbox
+    const hitbox = this.getHitbox()
+    c.strokeStyle = 'lime'
+    c.lineWidth = 2
+    c.strokeRect(
+      hitbox.x,
+      hitbox.y,
+      hitbox.width,
+      hitbox.height
+    )
+
+    // Draw sprite bounds
+    c.strokeStyle = 'yellow'
+    c.lineWidth = 1
+    c.strokeRect(this.x, this.y, this.width, this.height)
+
+    // Draw center point
+    const centerX = this.x + this.width / 2
+    const centerY = this.y + this.height / 2
+    c.beginPath()
+    c.arc(centerX, centerY, 3, 0, Math.PI * 2)
+    c.fillStyle = 'red'
+    c.fill()
+
+    // Draw debug text
+    c.font = '12px monospace'
+    c.fillStyle = 'white'
+    c.strokeStyle = 'black'
+    c.lineWidth = 3
+    
+    const debugInfo = [
+      `Pos: (${Math.round(this.x)}, ${Math.round(this.y)})`,
+      `Vel: (${this.velocity.x.toFixed(1)}, ${this.velocity.y.toFixed(1)})`,
+      `State: ${this.state}`,
+      `OnGround: ${this.isOnGround}`
+    ]
+
+    // Draw text with outline for better visibility
+    debugInfo.forEach((text, index) => {
+      const xPos = this.x
+      const yPos = this.y - 10 - (index * 15)
+      c.strokeText(text, xPos, yPos)
+      c.fillText(text, xPos, yPos)
+    })
   }
   
   drawHitbox(c) {

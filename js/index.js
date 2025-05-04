@@ -41,6 +41,9 @@ const platforms = []
 const TILE_SIZE = 32;
 const blockSize = TILE_SIZE; // Assuming each tile is 32x32 pixels
 
+// Debug setup
+window.debugMode = false;
+
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if (symbol === 1) {
@@ -173,10 +176,33 @@ function animate() {
 
   // Render scene
   c.save()
-  c.scale(dpr * GAME_SCALE, dpr * GAME_SCALE)
-  c.clearRect(0, 0, canvas.width / (dpr * GAME_SCALE), canvas.height / (dpr * GAME_SCALE))
+  c.scale(dpr, dpr)
+  c.clearRect(0, 0, canvas.width, canvas.height)
   c.drawImage(backgroundCanvas, 0, 0)
   player.draw(c)
+
+  // Debug overlay
+  if (window.debugMode) {
+    // Draw global debug info
+    c.font = '16px monospace'
+    c.fillStyle = 'white'
+    c.strokeStyle = 'black'
+    c.lineWidth = 3
+
+    const debugInfo = [
+      'Debug Mode ON',
+      `FPS: ${Math.round(1 / deltaTime)}`,
+      `Time: ${deltaTime.toFixed(3)}ms`
+    ]
+
+    debugInfo.forEach((text, index) => {
+      const xPos = 10
+      const yPos = 20 + (index * 20)
+      c.strokeText(text, xPos, yPos)
+      c.fillText(text, xPos, yPos)
+    })
+  }
+
   c.restore()
 
   animationFrameId = requestAnimationFrame(animate)

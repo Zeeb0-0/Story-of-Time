@@ -7,8 +7,10 @@ class CollisionBlock {
   }
 
   draw(c) {
-    // Optional: Draw collision blocks for debugging
-    c.fillStyle = 'rgba(255, 0, 0, 0.5)'
-    c.fillRect(this.x, this.y, this.width, this.height)
+    if (window.debugMode) {
+      c.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+      c.lineWidth = 1
+      c.strokeRect(this.x, this.y, this.width, this.height)
+    }
   }
 }
