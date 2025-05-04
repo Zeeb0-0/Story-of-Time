@@ -4,150 +4,302 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story of Time</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/ui.css">
-    <link rel="stylesheet" href="styles/game.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="coffee-cup-loader">
-            <div class="coffee-liquid"></div>
-            <div class="steam">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-        <p class="loading-text">Brewing...</p>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font: inherit;
+      vertical-align: baseline;
+    }
+    body {
+      background: #3d2816; /* Updated to match the image color */
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    }
+    
+    canvas {
+      width: 1024px;
+      height: 576px;
+      display: block; /* Fix box character issue by ensuring proper display */
+    }
+    
+    /* UI Styling */
+    .menu-container {
+      position: absolute;
+      width: 1024px;
+      height: 576px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #e0c397; /* Light beige text */
+      background-color: #3d2816; /* Solid dark brown to match the image */
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    }
+    
+    .title {
+      font-size: 48px;
+      margin-bottom: 60px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      color: #f8e4c9; /* Slightly lighter beige for title */
+    }
+    
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .menu-button {
+      background-color: #6b4c39; /* Dark brown */
+      color: #e0c397; /* Light beige text */
+      border: 2px solid #c99c6b; /* Medium brown border */
+      padding: 10px 25px;
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+      font-size: 16px;
+      cursor: pointer;
+      min-width: 220px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .menu-button:hover {
+      background-color: #7d5a42; /* Slightly lighter brown on hover */
+      transform: translateY(-2px);
+    }
+    
+    .modal {
+      position: absolute;
+      background-color: #3d2816; /* Updated to match the image color */
+      border: 2px solid #c99c6b; /* Medium brown border */
+      padding: 25px;
+      display: none;
+      color: #e0c397; /* Light beige text */
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+      max-width: 600px;
+      min-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-title {
+      font-size: 30px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #f8e4c9; /* Slightly lighter beige for title */
+    }
+    
+    .modal-content {
+      margin-bottom: 20px;
+    }
+    
+    .modal-content h3 {
+      color: #c99c6b; /* Medium brown for headings */
+      margin-bottom: 10px;
+      margin-top: 15px;
+    }
+    
+    .modal-content hr {
+      border: none;
+      height: 1px;
+      background-color: #c99c6b; /* Medium brown */
+      margin-bottom: 15px;
+    }
+    
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    
+    .close-button, .back-button {
+      background-color: #6b4c39; /* Dark brown */
+      color: #e0c397; /* Light beige text */
+      border: 2px solid #c99c6b; /* Medium brown border */
+      padding: 8px 20px;
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: all 0.2s;
+    }
+    
+    .close-button:hover, .back-button:hover {
+      background-color: #7d5a42; /* Slightly lighter brown on hover */
+    }
+    
+    .player-info {
+      position: absolute;
+      bottom: 20px;
+      text-align: center;
+      width: 100%;
+      color: #c99c6b; /* Medium brown */
+      font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+      font-size: 14px;
+    }
+    
+    .player-info p {
+      margin-bottom: 5px;
+    }
+    
+    /* Fix for sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 200px;
+      height: 10px;
+      background: #6b4c39;
+      border-radius: 5px;
+      outline: none;
+      border: 1px solid #c99c6b;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #e0c397;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid #c99c6b;
+    }
+    </style>
+    <canvas style="image-rendering: pixelated"></canvas>
+    
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu-container">
+      <h1 class="title">Story of Time</h1>
+      <div class="menu-buttons">
+        <button id="startJourney" class="menu-button">Start Journey</button>
+        <button id="continueJourney" class="menu-button">Continue Journey</button>
+        <button id="settingsButton" class="menu-button">Settings</button>
+        <button id="statisticsButton" class="menu-button">Statistics</button>
+      </div>
+      <div class="player-info">
+        <p id="playerName">Player: Zeeb0-0</p>
+        <p id="lastUpdate">Last Update: 2025-05-04 02:03:18</p>
+      </div>
     </div>
-
-    <!-- Title Screen -->
-    <div id="title-screen" class="screen">
-        <h1 class="game-title">Story of Time</h1>
-        <div class="menu-buttons">
-            <button class="pixel-button" id="startJourney">Start Journey</button>
-            <button class="pixel-button" id="continueJourney">Continue Journey</button>
-            <button class="pixel-button" id="settings">Settings</button>
-            <button class="pixel-button" id="statistics">Statistics</button>
+    
+    <!-- Statistics Modal -->
+    <div id="statisticsModal" class="modal">
+      <h2 class="modal-title">Player Statistics</h2>
+      <div class="modal-content">
+        <h3>Game Progress</h3>
+        <hr />
+        <div class="modal-row">
+          <span>Play Time:</span>
+          <span id="playTime">0h 0m 0s</span>
         </div>
-        <div class="user-info">
-            <span class="user-name">Player: Zeeb0-0</span>
+        <div class="modal-row">
+          <span>Last Played:</span>
+          <span id="lastPlayed">2025-05-04 02:03:18</span>
         </div>
+      </div>
+      <button id="closeStatsButton" class="close-button">Close</button>
     </div>
-
-    <!-- Game Container -->
-    <div id="game-container" class="screen" style="display: none;">
-        <canvas id="gameCanvas"></canvas>
-        <div class="game-ui">
-            <div class="ui-top">
-                <div class="ui-element">Time: <span id="gameTime">00:00</span></div>
-                <div class="ui-element">Score: <span id="gameScore">0</span></div>
-            </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <h2 class="modal-title">Settings</h2>
+      <div class="modal-content">
+        <h3>Audio</h3>
+        <hr />
+        <div class="modal-row">
+          <span>Music Volume:</span>
+          <input type="range" min="0" max="100" value="80" class="slider" id="musicVolume">
         </div>
-    </div>
-
-    <!-- Settings Menu -->
-    <div id="settings-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-content">
-            <h2>Settings</h2>
-            <div class="volume-controls">
-                <div class="volume-control">
-                    <label for="masterVolume">Master Volume</label>
-                    <div class="slider-container">
-                        <input type="range" id="masterVolume" class="pixel-slider" min="0" max="100" value="100">
-                        <span class="volume-value">100%</span>
-                    </div>
-                </div>
-                <div class="volume-control">
-                    <label for="musicVolume">Music</label>
-                    <div class="slider-container">
-                        <input type="range" id="musicVolume" class="pixel-slider" min="0" max="100" value="70">
-                        <span class="volume-value">70%</span>
-                    </div>
-                </div>
-                <div class="volume-control">
-                    <label for="sfxVolume">Sound Effects</label>
-                    <div class="slider-container">
-                        <input type="range" id="sfxVolume" class="pixel-slider" min="0" max="100" value="100">
-                        <span class="volume-value">100%</span>
-                    </div>
-                </div>
-            </div>
-            <button class="pixel-button" id="closeSettings">Close</button>
+        <div class="modal-row">
+          <span>Sound Effects:</span>
+          <input type="range" min="0" max="100" value="90" class="slider" id="sfxVolume">
         </div>
-    </div>
-
-    <!-- Save Slots Menu -->
-    <div id="save-slots-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-content">
-            <h2>Save Slots</h2>
-            <div class="save-slots-grid" id="saveSlotsList">
-                <!-- Save slots will be dynamically populated -->
-            </div>
-            <button class="pixel-button" id="closeSaveMenu">Back</button>
+        
+        <h3>Controls</h3>
+        <hr />
+        <div class="modal-row">
+          <span>W/↑</span>
+          <span>Jump</span>
         </div>
-    </div>
-
-    <!-- Statistics Screen -->
-    <div id="statistics-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-content">
-            <h2>Player Statistics</h2>
-            <div class="statistics-container">
-                <div class="stat-group">
-                    <h3>Game Progress</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Play Time:</span>
-                        <span class="stat-value" id="statPlayTime">0h 0m 0s</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Levels Completed:</span>
-                        <span class="stat-value" id="statLevelsCompleted">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Checkpoints Reached:</span>
-                        <span class="stat-value" id="statCheckpoints">0</span>
-                    </div>
-                </div>
-                <div class="stat-group">
-                    <h3>Player Actions</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Jumps:</span>
-                        <span class="stat-value" id="statJumps">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Distance Traveled:</span>
-                        <span class="stat-value" id="statDistance">0 px</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Deaths:</span>
-                        <span class="stat-value" id="statDeaths">0</span>
-                    </div>
-                </div>
-                <div class="stat-group">
-                    <h3>Collection</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Coins:</span>
-                        <span class="stat-value" id="statCoins">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Powerups:</span>
-                        <span class="stat-value" id="statPowerups">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Score:</span>
-                        <span class="stat-value" id="statScore">0</span>
-                    </div>
-                </div>
-            </div>
-            <button class="pixel-button" id="closeStatistics">Close</button>
+        <div class="modal-row">
+          <span>A/←</span>
+          <span>Move Left</span>
         </div>
+        <div class="modal-row">
+          <span>D/→</span>
+          <span>Move Right</span>
+        </div>
+        <div class="modal-row">
+          <span>ESC</span>
+          <span>Menu</span>
+        </div>
+      </div>
+      <button id="closeSettingsButton" class="close-button">Close</button>
     </div>
-
-    <!-- Debug Panel (hidden by default) -->
-    <div id="debug-panel" style="display: none;"></div>
-
-    <script type="module" src="scripts/main.js"></script>
+    
+    <!-- Save Slots Modal -->
+    <div id="saveSlotModal" class="modal">
+      <h2 class="modal-title">Save Slots</h2>
+      <div class="modal-content">
+        <!-- Save slots will be populated dynamically -->
+      </div>
+      <button id="backButton" class="back-button">Back</button>
+    </div>
+    
+    <!-- Live reload script -->
+    <script>
+    // Simple reload handler for development
+    (function() {
+      const currentHost = window.location.hostname;
+      if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+        let lastModified = Date.now();
+        
+        // Check for changes every second
+        setInterval(() => {
+          fetch(window.location.href, { method: 'HEAD' })
+            .then(response => {
+              const serverLastModified = response.headers.get('Last-Modified');
+              if (serverLastModified) {
+                const serverModTime = new Date(serverLastModified).getTime();
+                if (serverModTime > lastModified) {
+                  console.log('Changes detected, reloading page...');
+                  lastModified = serverModTime;
+                  window.location.reload();
+                }
+              }
+            })
+            .catch(err => console.error('Reload check failed:', err));
+        }, 1000);
+        
+        console.log('Live reload monitoring active');
+      }
+    })();
+    </script>
+    
+    <script src="./data/l_New_Layer_1.js"></script>
+    <script src="./data/l_New_Layer_2.js"></script>
+    <script src="./data/l_New_Layer_3.js"></script>
+    <script src="./data/l_New_Layer_4.js"></script>
+    <script src="./data/l_New_Layer_5.js"></script>
+    <script src="./data/l_New_Layer_6.js"></script>
+    <script src="./data/l_New_Layer_7.js"></script>
+    <script src="./data/l_New_Layer_8.js"></script>
+    <script src="./data/l_New_Layer_9.js"></script>
+    <script src="./data/collisions.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./classes/CollisionBlock.js"></script>
+    <script src="./classes/Platform.js"></script>
+    <script src="./classes/Player.js"></script>
+    <script src="./js/gameState.js"></script>
+    <script src="./js/index.js"></script>
+    <script src="./js/eventListeners.js"></script>
+    <script src="./js/ui.js"></script>
+    
 </body>
-</html>

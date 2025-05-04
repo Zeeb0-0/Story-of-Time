@@ -1,0 +1,11 @@
+{
+  "port": 5501,
+  "host": "localhost",
+  "root": "./",
+  "open": false,
+  "file": "index.html",
+  "wait": 1000,
+  "mount": [],
+  "logLevel": 2,
+  "middleware": []
+}
