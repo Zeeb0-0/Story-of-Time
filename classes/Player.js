@@ -17,6 +17,7 @@ class Player {
     this.width = (this.frameWidth / this.frameHeight) * size
     
     this.velocity = velocity
+    this.gravity = 580 // Make sure gravity is defined
     this.isOnGround = false
     
     // Animation state
@@ -190,12 +191,12 @@ class Player {
       hitbox.width,
       hitbox.height
     )
-
+  
     // Draw sprite bounds
     c.strokeStyle = 'yellow'
     c.lineWidth = 1
     c.strokeRect(this.x, this.y, this.width, this.height)
-
+  
     // Draw attack hitbox if active
     if (this.attackHitbox.active) {
       const attackHitbox = this.getAttackHitbox()
@@ -207,8 +208,7 @@ class Player {
         attackHitbox.width,
         attackHitbox.height
       )
-
-      // Fill attack hitbox with semi-transparent red
+  
       c.fillStyle = 'rgba(255, 0, 0, 0.2)'
       c.fillRect(
         attackHitbox.x,
@@ -217,7 +217,7 @@ class Player {
         attackHitbox.height
       )
     }
-
+  
     // Calculate centers
     const center = {
       x: hitbox.x + hitbox.width / 2,
@@ -229,7 +229,10 @@ class Player {
     c.arc(center.x, center.y, 3, 0, Math.PI * 2)
     c.fillStyle = 'lime'
     c.fill()
-
+  
+    // Convert world position to screen position for text
+    const screenPos = camera.worldToScreen(this.x, this.y)
+    
     // Debug text
     c.font = '12px monospace'
     c.fillStyle = 'white'
@@ -249,7 +252,8 @@ class Player {
       `Locked: ${this.animationLocked}`,
       `OnGround: ${this.isOnGround}`
     ]
-
+  
+    // Position debug text relative to screen space
     const textX = this.facingDirection === -1 ? 
       hitbox.x + hitbox.width + 5 : 
       hitbox.x - 5
@@ -386,22 +390,50 @@ class Player {
 
   update(deltaTime, collisionBlocks) {
     if (!deltaTime) return
-    
-    this.applyGravity(deltaTime)
-    
+
+    // Apply gravity before movement
+    if (!this.isOnGround) {
+      this.velocity.y += GRAVITY * deltaTime
+    }
+
     // Update horizontal position and check collisions
-    this.updateHorizontalPosition(deltaTime)
+    this.x += this.velocity.x * deltaTime
     this.checkForHorizontalCollisions(collisionBlocks)
-    
-    // Check for any platform collisions
-    this.checkPlatformCollisions(platforms, deltaTime)
-    
+
     // Update vertical position and check collisions
-    this.updateVerticalPosition(deltaTime)
+    this.y += this.velocity.y * deltaTime
     this.checkForVerticalCollisions(collisionBlocks)
-    
-    // Update animation
+
+    // Check platform collisions
+    this.checkPlatformCollisions(platforms)
+
+    // Update animation state
     this.updateAnimation(deltaTime)
+  }
+
+  checkPlatformCollisions(platforms) {
+    const hitbox = this.getHitbox()
+    
+    for (let platform of platforms) {
+      if (
+        hitbox.x + hitbox.width >= platform.x &&
+        hitbox.x <= platform.x + platform.width &&
+        Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 &&
+        this.velocity.y > 0
+      ) {
+        this.velocity.y = 0
+        const offset = hitbox.y - this.y
+        this.y = platform.y - hitbox.height - offset
+        this.isOnGround = true
+        return
+      }
+    }
+    
+    // Only set isOnGround to false if we're not already on solid ground
+    // This prevents losing ground state when walking off a platform onto solid ground
+    if (this.velocity.y > 0 && !this.isOnGround) {
+      this.isOnGround = false
+    }
   }
 
   jump() {
@@ -431,57 +463,54 @@ class Player {
   }
 
   checkForHorizontalCollisions(collisionBlocks) {
-    const buffer = 0.0001
     const hitbox = this.getHitbox()
     
-    for (let i = 0; i < collisionBlocks.length; i++) {
-      const collisionBlock = collisionBlocks[i]
-      
+    for (const block of collisionBlocks) {
       if (
-        hitbox.x <= collisionBlock.x + collisionBlock.width &&
-        hitbox.x + hitbox.width >= collisionBlock.x &&
-        hitbox.y + hitbox.height >= collisionBlock.y &&
-        hitbox.y <= collisionBlock.y + collisionBlock.height
+        hitbox.x < block.x + block.width &&
+        hitbox.x + hitbox.width > block.x &&
+        hitbox.y + hitbox.height > block.y &&
+        hitbox.y < block.y + block.height
       ) {
-        if (this.velocity.x < 0) {
-          const adjustedX = collisionBlock.x + collisionBlock.width + buffer
-          this.x = adjustedX - this.hitboxOffset.x
-          break
-        }
-        
+        // Moving right
         if (this.velocity.x > 0) {
-          const adjustedX = collisionBlock.x - hitbox.width - buffer
-          this.x = adjustedX - this.hitboxOffset.x
-          break
+          this.velocity.x = 0
+          const offset = hitbox.x - this.x
+          this.x = block.x - hitbox.width - offset
+        }
+        // Moving left
+        else if (this.velocity.x < 0) {
+          this.velocity.x = 0
+          const offset = hitbox.x - this.x
+          this.x = block.x + block.width - offset
         }
       }
     }
   }
 
   checkForVerticalCollisions(collisionBlocks) {
-    const buffer = 0.0001
     const hitbox = this.getHitbox()
+    this.isOnGround = false // Reset ground check
     
-    for (let i = 0; i < collisionBlocks.length; i++) {
-      const collisionBlock = collisionBlocks[i]
-      
+    for (const block of collisionBlocks) {
       if (
-        hitbox.x <= collisionBlock.x + collisionBlock.width &&
-        hitbox.x + hitbox.width >= collisionBlock.x &&
-        hitbox.y + hitbox.height >= collisionBlock.y &&
-        hitbox.y <= collisionBlock.y + collisionBlock.height
+        hitbox.x < block.x + block.width &&
+        hitbox.x + hitbox.width > block.x &&
+        hitbox.y + hitbox.height > block.y &&
+        hitbox.y < block.y + block.height
       ) {
-        if (this.velocity.y < 0) {
-          this.velocity.y = 0
-          this.y = collisionBlock.y + collisionBlock.height - this.hitboxOffset.y + buffer
-          break
-        }
-        
+        // Moving down (falling)
         if (this.velocity.y > 0) {
           this.velocity.y = 0
-          this.y = collisionBlock.y - hitbox.height - this.hitboxOffset.y - buffer
           this.isOnGround = true
-          break
+          const offset = hitbox.y - this.y
+          this.y = block.y - hitbox.height - offset
+        }
+        // Moving up (jumping)
+        else if (this.velocity.y < 0) {
+          this.velocity.y = 0
+          const offset = hitbox.y - this.y
+          this.y = block.y + block.height - offset
         }
       }
     }

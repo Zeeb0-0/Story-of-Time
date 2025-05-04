@@ -20,7 +20,7 @@
     vertical-align: baseline;
   }
   body {
-    background: #3d2816; /* Updated to match the image color */
+    background: #3f3851; /* Updated to match the image color */
     margin: 0;
     display: flex;
     justify-content: center;
@@ -47,7 +47,7 @@
     justify-content: center;
     align-items: center;
     color: #e0c397; /* Light beige text */
-    background-color: #3d2816; /* Solid dark brown to match the image */
+    background-color: #3f3851; /* Solid dark brown to match the image */
     font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
   }
   
@@ -65,7 +65,7 @@
   }
   
   .menu-button {
-    background-color: #6b4c39; /* Dark brown */
+    background-color: #3f3851; /* Dark brown */
     color: #e0c397; /* Light beige text */
     border: 2px solid #c99c6b; /* Medium brown border */
     padding: 10px 25px;
@@ -78,13 +78,13 @@
   }
   
   .menu-button:hover {
-    background-color: #7d5a42; /* Slightly lighter brown on hover */
+    background-color: #464056; /* Slightly lighter brown on hover */
     transform: translateY(-2px);
   }
   
   .modal {
     position: absolute;
-    background-color: #3d2816; /* Updated to match the image color */
+    background-color: #3f3851; /* Updated to match the image color */
     border: 2px solid #c99c6b; /* Medium brown border */
     padding: 25px;
     display: none;
@@ -115,7 +115,7 @@
   .modal-content hr {
     border: none;
     height: 1px;
-    background-color: #c99c6b; /* Medium brown */
+    background-color: #464056; /* Medium brown */
     margin-bottom: 15px;
   }
   
@@ -126,7 +126,7 @@
   }
   
   .close-button, .back-button {
-    background-color: #6b4c39; /* Dark brown */
+    background-color: #3f3851; /* Dark brown */
     color: #e0c397; /* Light beige text */
     border: 2px solid #c99c6b; /* Medium brown border */
     padding: 8px 20px;

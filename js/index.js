@@ -1,11 +1,19 @@
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 const dpr = window.devicePixelRatio || 1
-const GAME_SCALE = 1; // Adjustable scale factor for the entire game
+const CANVAS_WIDTH = 1024
+const CANVAS_HEIGHT = 576
+const LEVEL_WIDTH = 2000
+const LEVEL_HEIGHT = 1000
 
+// Set up canvas with correct sizing
+canvas.width = CANVAS_WIDTH * dpr
+canvas.height = CANVAS_HEIGHT * dpr
+canvas.style.width = `${CANVAS_WIDTH}px`
+canvas.style.height = `${CANVAS_HEIGHT}px`
 
-canvas.width = 1024 * dpr
-canvas.height = 576 * dpr
+// Initialize camera with logical dimensions
+const camera = new Camera(CANVAS_WIDTH, CANVAS_HEIGHT, LEVEL_WIDTH, LEVEL_HEIGHT)
 
 // Initially hide the canvas until game starts
 canvas.style.display = 'none';
@@ -44,54 +52,48 @@ const blockSize = TILE_SIZE; // Assuming each tile is 32x32 pixels
 // Debug setup
 window.debugMode = false;
 
+// Update collision block creation
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if (symbol === 1) {
       collisionBlocks.push(
         new CollisionBlock({
-          x: x * blockSize,
-          y: y * blockSize,
-          size: blockSize,
-        }),
+          x: x * TILE_SIZE,
+          y: y * TILE_SIZE,
+          size: TILE_SIZE,
+        })
       )
     } else if (symbol === 2) {
       platforms.push(
         new Platform({
-          x: x * blockSize,
-          y: y * blockSize + blockSize,
+          x: x * TILE_SIZE,
+          y: (y+1) * TILE_SIZE,
           width: TILE_SIZE,
           height: TILE_SIZE / 4,
-        }),
+        })
       )
     }
   })
 })
 
+// Update renderLayer to handle tile positioning correctly
 const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
-  // Calculate the number of tiles per row in the tileset
-  // We use Math.ceil to ensure we get a whole number of tiles
   const tilesPerRow = Math.ceil(tilesetImage.width / tileSize)
 
   tilesData.forEach((row, y) => {
     row.forEach((symbol, x) => {
       if (symbol !== 0) {
-        // Adjust index to be 0-based for calculations
         const tileIndex = symbol - 1
-
-        // Calculate source coordinates
         const srcX = (tileIndex % tilesPerRow) * tileSize
         const srcY = Math.floor(tileIndex / tilesPerRow) * tileSize
-
+        
         context.drawImage(
-          tilesetImage, // source image
-          srcX,
-          srcY, // source x, y
-          tileSize,
-          tileSize, // source width, height
+          tilesetImage,
+          srcX, srcY,
+          tileSize, tileSize,
           x * TILE_SIZE,
-          y * TILE_SIZE, // destination x, y
-          TILE_SIZE,
-          TILE_SIZE, // destination width, height
+          y * TILE_SIZE,
+          TILE_SIZE, TILE_SIZE
         )
       }
     })
@@ -99,37 +101,32 @@ const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
 }
 
 const renderStaticLayers = async () => {
-  console.log('Starting to render static layers');
   const offscreenCanvas = document.createElement('canvas')
-  offscreenCanvas.width = canvas.width
-  offscreenCanvas.height = canvas.height
+  offscreenCanvas.width = CANVAS_WIDTH
+  offscreenCanvas.height = CANVAS_HEIGHT
   const offscreenContext = offscreenCanvas.getContext('2d')
 
   try {
     for (const [layerName, tilesData] of Object.entries(layersData)) {
       const tilesetInfo = tilesets[layerName]
       if (tilesetInfo) {
-        console.log(`Loading image for layer ${layerName}: ${tilesetInfo.imageUrl}`);
         try {
           const tilesetImage = await loadImage(tilesetInfo.imageUrl)
-          console.log(`Successfully loaded image for ${layerName}`);
           renderLayer(
             tilesData,
             tilesetImage,
             tilesetInfo.tileSize,
-            offscreenContext,
+            offscreenContext
           )
         } catch (error) {
           console.error(`Failed to load image for layer ${layerName}:`, error)
         }
       }
     }
-    
-    console.log('All static layers rendered successfully');
-    return offscreenCanvas;
+    return offscreenCanvas
   } catch (error) {
-    console.error('Error in renderStaticLayers:', error);
-    return null;
+    console.error('Error in renderStaticLayers:', error)
+    return null
   }
 }
 // END - Tile setup
@@ -195,73 +192,77 @@ let animationFrameId = null
 let backgroundCanvas = null
 
 function animate() {
-  // Only animate if the game is started
-  if (!UI.isGameStarted) {
-    cancelAnimationFrame(animationFrameId);
-    return;
-  }
-
-  // Calculate delta time
-  const currentTime = performance.now()
-  const deltaTime = (currentTime - lastTime) / 1000
-  lastTime = currentTime
-
-  // Update player position
-  player.handleInput(keys)
-  player.update(deltaTime, collisionBlocks)
-
-  // Render scene
+  const now = performance.now()
+  const deltaTime = (now - lastTime) / 1000
+  lastTime = now
+  
+  // Clear canvas and setup scaling
   c.save()
   c.scale(dpr, dpr)
-  c.clearRect(0, 0, canvas.width, canvas.height)
-  c.drawImage(backgroundCanvas, 0, 0)
   
-  // Debug visualization of collision blocks and platforms
+  // Fill background with correct color
+  c.fillStyle = '#3f3851' // Changed from sky blue to #3f3851
+  c.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+  
+  // Apply camera transform
+  camera.apply(c)
+  
+  // Draw background layers
+  if (backgroundCanvas) {
+    c.drawImage(backgroundCanvas, 0, 0)
+  }
+  
+  // Draw collision blocks and platforms in debug mode
   if (window.debugMode) {
-    // Draw collision blocks
     collisionBlocks.forEach(block => {
-      c.strokeStyle = 'rgba(255, 0, 0, 0.5)'
-      c.lineWidth = 1
-      c.strokeRect(block.x, block.y, block.width, block.height)
+      block.draw(c)
     })
     
-    // Draw platforms
     platforms.forEach(platform => {
-      c.strokeStyle = 'rgba(0, 255, 0, 0.5)'
-      c.lineWidth = 1
-      c.strokeRect(platform.x, platform.y, platform.width, platform.height)
+      platform.draw(c)
     })
   }
   
+  // Update and draw player
+  player.handleInput(keys)
+  player.update(deltaTime, collisionBlocks)
   player.draw(c)
-
-  // Debug overlay
+  
+  // Update and restore camera
+  camera.follow(player)
+  camera.restore(c)
+  
+  // Draw UI elements
   if (window.debugMode) {
-    // Draw global debug info
-    c.font = '16px monospace'
-    c.fillStyle = 'white'
-    c.strokeStyle = 'black'
-    c.lineWidth = 3
-
-    const debugInfo = [
-      'Debug Mode ON',
-      `FPS: ${Math.round(1 / deltaTime)}`,
-      `Time: ${deltaTime.toFixed(3)}ms`,
-      `Blocks: ${collisionBlocks.length}`,
-      `Platforms: ${platforms.length}`
-    ]
-
-    debugInfo.forEach((text, index) => {
-      const xPos = 10
-      const yPos = 20 + (index * 20)
-      c.strokeText(text, xPos, yPos)
-      c.fillText(text, xPos, yPos)
-    })
+    drawDebugOverlay(c, deltaTime)
   }
-
+  
+  // Restore initial transform
   c.restore()
-
+  
   animationFrameId = requestAnimationFrame(animate)
+}
+
+// Update debug overlay function to accept deltaTime
+function drawDebugOverlay(c, deltaTime) {
+  c.font = '16px monospace'
+  c.fillStyle = 'black'
+  c.strokeStyle = 'white'
+  c.lineWidth = 3
+  
+  const debugInfo = [
+    `FPS: ${Math.round(1 / deltaTime)}`,
+    `Debug Mode: ${window.debugMode ? 'ON' : 'OFF'}`,
+    `Camera: (${Math.round(camera.x)}, ${Math.round(camera.y)})`,
+    `Player World Pos: (${Math.round(player.x)}, ${Math.round(player.y)})`
+  ]
+  
+  debugInfo.forEach((text, i) => {
+    const x = 10
+    const y = 20 + (i * 20)
+    c.strokeText(text, x, y)
+    c.fillText(text, x, y)
+  })
 }
 
 // Function to start the game loop (called by UI system)

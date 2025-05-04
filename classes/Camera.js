@@ -11,7 +11,6 @@ class Camera {
       this.smoothing = 0.1
     }
   
-    // Follow target (player) with smooth movement
     follow(target) {
       // Calculate desired camera position (centered on target)
       const desiredX = target.x + target.width / 2 - this.width / 2
@@ -26,18 +25,15 @@ class Camera {
       this.y = Math.max(0, Math.min(this.y, this.levelHeight - this.height))
     }
   
-    // Apply camera transform to context
     apply(c) {
       c.save()
       c.translate(-Math.floor(this.x), -Math.floor(this.y))
     }
   
-    // Restore context to normal
     restore(c) {
       c.restore()
     }
   
-    // Convert world position to screen position
     worldToScreen(x, y) {
       return {
         x: x - this.x,
@@ -45,7 +41,6 @@ class Camera {
       }
     }
   
-    // Convert screen position to world position
     screenToWorld(x, y) {
       return {
         x: x + this.x,
