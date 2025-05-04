@@ -2,6 +2,9 @@ class KingPig {
     constructor({ x, y, size, player }) {
       this.x = x
       this.y = y
+
+      this.groundLeaveTime = 0  // Add this for ground state tracking
+      this.isDead = false       // Make sure this exists
       
       // Original sprite dimensions
       this.frameWidth = 38  // Width of each frame
@@ -17,7 +20,6 @@ class KingPig {
       }
       
       this.gravity = 580
-      this.isOnGround = false
       
       // Reference to player for AI targeting
       this.player = player
@@ -126,88 +128,138 @@ class KingPig {
     }
   
     updateAI(deltaTime) {
-      if (this.isDead) return
-  
-      const distanceToPlayer = Math.hypot(
-        this.player.x - this.x,
-        this.player.y - this.y
-      )
-  
-      // Check if player is in detection range
-      if (distanceToPlayer <= this.detectionRange) {
-        this.aggroState = true
-      }
-  
-      if (this.aggroState && !this.animationLocked) {
-        // Update facing direction
-        this.facingDirection = this.player.x < this.x ? -1 : 1
-  
-        if (distanceToPlayer <= this.attackRange) {
-          // Attack if in range
-          if (!this.isAttacking) {
-            this.attack()
-          }
-        } else {
-          // Move towards player
-          this.velocity.x = this.facingDirection * 80
-        }
-      }
-    }
-  
-    update(deltaTime, collisionBlocks, platforms) { // Add platforms parameter
-        if (!deltaTime) return
+        if (this.isDead) return
     
-        // Update AI behavior
-        this.updateAI(deltaTime)
+        const distanceToPlayer = Math.hypot(
+            this.player.x - this.x,
+            this.player.y - this.y
+        )
     
-        // Apply gravity if not on ground
-        if (!this.isOnGround) {
-            this.velocity.y += this.gravity * deltaTime
+        // Check if player is in detection range
+        if (distanceToPlayer <= this.detectionRange) {
+            this.aggroState = true
         }
     
-        // Update position and check collisions
-        this.x += this.velocity.x * deltaTime
-        this.checkForHorizontalCollisions(collisionBlocks)
+        if (this.aggroState && !this.animationLocked) {
+            this.facingDirection = this.player.x > this.x ? 1 : -1
     
-        this.y += this.velocity.y * deltaTime
-        this.checkForVerticalCollisions(collisionBlocks)
-        this.checkPlatformCollisions(platforms) // Add platform collision check
+            // Get vertical distance to player
+            const verticalDistance = this.player.y - this.y
+            const horizontalDistance = Math.abs(this.player.x - this.x)
     
-        // Reset ground state
-        this.isOnGround = false
+            // Debug log ground state and distances
+            if (window.debugMode) {
+                console.log('King Pig State:', {
+                    isOnGround: this.isOnGround,
+                    verticalDistance,
+                    horizontalDistance,
+                    velocity: this.velocity,
+                    blocked: this.velocity.x === 0
+                })
+            }
     
-        // Cap falling speed
-        this.velocity.y = Math.min(this.velocity.y, 700)
+            // Check if we need to jump
+            if (this.isOnGround) {
+                // Jump if player is above and close enough horizontally
+                if (verticalDistance < -50 && horizontalDistance < 150) {
+                    console.log('Jumping to reach player above')
+                    this.jump()
+                }
+                // Jump if blocked by collision and player is in range
+                else if (Math.abs(this.velocity.x) < 1 && distanceToPlayer <= this.detectionRange) {
+                    console.log('Jumping over obstacle')
+                    this.jump()
+                }
+            }
     
-        // Update animation state
-        this.updateAnimation(deltaTime)
-    
-        // Check for attack collision with player
-        if (this.attackHitbox.active) {
-            this.checkAttackCollision()
-        }
-    }
-
-    checkPlatformCollisions(platforms) {
-        if (!platforms) return
-        
-        const hitbox = this.getHitbox()
-        
-        for (let platform of platforms) {
-            if (
-                hitbox.x + hitbox.width >= platform.x &&
-                hitbox.x <= platform.x + platform.width &&
-                Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 &&
-                this.velocity.y > 0
-            ) {
-                this.velocity.y = 0
-                this.isOnGround = true
-                const offset = hitbox.y - this.y
-                this.y = platform.y - hitbox.height - offset
-                return
+            if (distanceToPlayer <= this.attackRange) {
+                if (!this.isAttacking) {
+                    this.attack()
+                }
+            } else {
+                this.velocity.x = this.facingDirection * 80
             }
         }
     }
+    
+    jump() {
+        if (this.isOnGround) {
+            console.log('Executing jump!')
+            this.velocity.y = -400
+            this.isOnGround = false
+            this.state = 'jump'
+        } else {
+            console.log('Cannot jump - not on ground')
+        }
+    }
+  
+    update(deltaTime, collisionBlocks, platforms) {
+      if (this.isDead) {
+          // Only update animation if dead
+          this.updateAnimation(deltaTime)
+          return
+      }
+
+      if (!deltaTime) return
+
+      // Update AI behavior
+      this.updateAI(deltaTime)
+
+      // Check if we've been off ground long enough to change state
+      if (!this.hasGroundContact && !this.isOnGround) {
+          if (performance.now() - this.groundLeaveTime > 500) {
+              this.isOnGround = false
+          }
+      }
+
+      // Apply gravity if not on ground
+      if (!this.isOnGround) {
+          this.velocity.y += this.gravity * deltaTime
+      }
+
+      // Update position and check collisions
+      this.x += this.velocity.x * deltaTime
+      this.checkForHorizontalCollisions(collisionBlocks)
+
+      this.y += this.velocity.y * deltaTime
+      this.checkForVerticalCollisions(collisionBlocks)
+      this.checkPlatformCollisions(platforms)
+
+      // Cap falling speed
+      this.velocity.y = Math.min(this.velocity.y, 700)
+
+      // Update animation state
+      this.updateAnimation(deltaTime)
+
+      // Check for attack collision with player
+      if (this.attackHitbox.active) {
+          this.checkAttackCollision()
+      }
+  }
+
+    // Also update platform collision check to set isOnGround
+    checkPlatformCollisions(platforms) {
+      if (!platforms) return
+      
+      const hitbox = this.getHitbox()
+      
+      for (let platform of platforms) {
+          if (
+              hitbox.x + hitbox.width >= platform.x &&
+              hitbox.x <= platform.x + platform.width &&
+              Math.abs(hitbox.y + hitbox.height - platform.y) <= 5 &&
+              this.velocity.y > 0
+          ) {
+              this.velocity.y = 0
+              this.hasGroundContact = true
+              this.isOnGround = true
+              this.groundLeaveTime = performance.now()
+              const offset = hitbox.y - this.y
+              this.y = platform.y - hitbox.height - offset
+              return
+          }
+      }
+  }
   
     updateAnimation(deltaTime) {
       const currentSpeed = this.animationSpeeds[this.state]
@@ -270,33 +322,46 @@ class KingPig {
   
     takeDamage(amount) {
       if (!this.isHit && !this.isDead) {
-        this.health = Math.max(0, this.health - amount)
-        this.isHit = true
-        this.state = 'hit'
-        this.animationLocked = true
-        this.sprites.hit.currentFrame = 0
-        
-        if (this.health === 0) {
-          this.isDead = true
-          this.state = 'dead'
-          this.sprites.dead.currentFrame = 0
-        }
+          this.health = Math.max(0, this.health - amount)
+          this.isHit = true
+          this.state = 'hit'
+          this.animationLocked = true
+          this.sprites.hit.currentFrame = 0
+          
+          // Add knockback
+          this.velocity.x = (this.facingDirection * -1) * 100
+          this.velocity.y = -200
+          
+          // Reset hit state after delay
+          setTimeout(() => {
+              this.isHit = false
+          }, 500)
+          
+          if (this.health === 0) {
+              this.isDead = true
+              this.state = 'dead'
+              this.sprites.dead.currentFrame = 0
+              this.velocity.x = 0  // Stop movement on death
+              this.velocity.y = 0
+          }
       }
     }
   
     checkAttackCollision() {
+      if (!this.isAttacking || this.isHit) return
+      
       const attackBox = this.getAttackHitbox()
       const playerBox = this.player.getHitbox()
   
       if (
-        attackBox.x < playerBox.x + playerBox.width &&
-        attackBox.x + attackBox.width > playerBox.x &&
-        attackBox.y < playerBox.y + playerBox.height &&
-        attackBox.y + attackBox.height > playerBox.y
+          attackBox.x < playerBox.x + playerBox.width &&
+          attackBox.x + attackBox.width > playerBox.x &&
+          attackBox.y < playerBox.y + playerBox.height &&
+          attackBox.y + attackBox.height > playerBox.y
       ) {
-        this.player.takeDamage(this.attackDamage)
+          this.player.takeDamage(this.attackDamage)
       }
-    }
+  }
   
     getAttackHitbox() {
       // Position attack hitbox based on facing direction
@@ -343,6 +408,8 @@ class KingPig {
           this.drawDebugInfo(c)
         }
       }
+      // Add this at the end
+    this.drawHealthBar(c)
     }
   
     // ... include the same collision checking methods as Player class
@@ -372,29 +439,37 @@ class KingPig {
         }
       }
   
+      // Update the vertical collision check to properly set isOnGround
       checkForVerticalCollisions(collisionBlocks) {
         const hitbox = this.getHitbox()
+        this.hasGroundContact = false  // Track physical contact
         
         for (const block of collisionBlocks) {
-          if (
-            hitbox.x < block.x + block.width &&
-            hitbox.x + hitbox.width > block.x &&
-            hitbox.y + hitbox.height > block.y &&
-            hitbox.y < block.y + block.height
-          ) {
-            if (this.velocity.y > 0) {
-              this.velocity.y = 0
-              this.hasGroundContact = true  // Set physical contact instead of isOnGround
-              const offset = hitbox.y - this.y
-              this.y = block.y - hitbox.height - offset
-            } else if (this.velocity.y < 0) {
-              this.velocity.y = 0
-              const offset = hitbox.y - this.y
-              this.y = block.y + block.height - offset
+            if (
+                hitbox.x < block.x + block.width &&
+                hitbox.x + hitbox.width > block.x &&
+                hitbox.y + hitbox.height > block.y &&
+                hitbox.y < block.y + block.height
+            ) {
+                if (this.velocity.y > 0) {
+                    this.velocity.y = 0
+                    this.hasGroundContact = true
+                    this.isOnGround = true
+                    this.groundLeaveTime = performance.now()
+                    const offset = hitbox.y - this.y
+                    this.y = block.y - hitbox.height - offset
+                } else if (this.velocity.y < 0) {
+                    this.velocity.y = 0
+                    const offset = hitbox.y - this.y
+                    this.y = block.y + block.height - offset
+                }
             }
-          }
         }
-      }
+        
+        if (!this.hasGroundContact && this.isOnGround) {
+            this.groundLeaveTime = performance.now()
+        }
+    }
   
       getHitbox() {
         return {
@@ -466,5 +541,22 @@ class KingPig {
             this.x,
             this.y - 25
         )
+    }
+    drawHealthBar(c) {
+        const healthBarWidth = 50
+        const healthBarHeight = 5
+        const healthPercentage = this.health / 100
+    
+        // Position above character
+        const x = this.x + (this.width - healthBarWidth) / 2
+        const y = this.y - 10
+    
+        // Draw background (red)
+        c.fillStyle = 'red'
+        c.fillRect(x, y, healthBarWidth, healthBarHeight)
+    
+        // Draw health (green)
+        c.fillStyle = 'green'
+        c.fillRect(x, y, healthBarWidth * healthPercentage, healthBarHeight)
     }
   }

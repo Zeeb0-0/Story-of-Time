@@ -231,6 +231,8 @@ function animate() {
     })
   }
   
+  player.checkAttackCollision([kingPig]) // Pass kingPig as enemy
+  
   // Add King Pig update and draw here
   kingPig.update(deltaTime, collisionBlocks, platforms)
   kingPig.draw(c)

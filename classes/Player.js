@@ -105,7 +105,7 @@ class Player {
       
     }
 
-    this.health = 100
+    this.health = 200
     this.isHit = false
     this.isDead = false
     this.isTransitioning = false
@@ -184,6 +184,7 @@ class Player {
       if (window.debugMode) {
         this.drawDebugInfo(c)
       }
+      this.drawHealthBar(c)
     }
   }
 
@@ -274,6 +275,13 @@ class Player {
   }
 
   updateAnimation(deltaTime) {
+    if (this.isDead) {
+      const deadSprite = this.sprites.dead
+      if (deadSprite.currentFrame < deadSprite.frameCount - 1) {
+          deadSprite.currentFrame++
+      }
+      return
+  } 
     const currentSpeed = this.animationSpeeds[this.state]
 
     if (this.animationLocked) {
@@ -295,6 +303,7 @@ class Player {
             currentSprite.currentFrame = currentSprite.frameCount - 1
           }
         }
+        
       }
       return
     }
@@ -325,16 +334,39 @@ class Player {
     }
   }
 
-  takeDamage(amount) {
-    if (!this.isHit && !this.isDead) {
-      this.health = Math.max(0, this.health - amount)
-      this.isHit = true
-      
-      if (this.health === 0) {
-        this.isDead = true
-      }
+  update() {
+    if (this.isDead) {
+        // Only update animation if dead
+        this.updateAnimation()
+        return
     }
   }
+
+  takeDamage(amount) {
+    if (!this.isHit && !this.isDead) {
+        this.health = Math.max(0, this.health - amount)
+        this.isHit = true
+        this.state = 'hit'
+        this.animationLocked = true
+        this.sprites.hit.currentFrame = 0
+        
+        // Add knockback
+        this.velocity.x = (this.facingDirection * -1) * 100
+        this.velocity.y = -200
+        
+        setTimeout(() => {
+            this.isHit = false
+        }, 500)
+        
+        if (this.health === 0) {
+            this.isDead = true
+            this.state = 'dead'
+            this.sprites.dead.currentFrame = 0
+            this.velocity.x = 0  // Stop movement on death
+            this.velocity.y = 0
+        }
+    }
+}
 
   enterDoor() {
     if (!this.isTransitioning && !this.isDead) {
@@ -396,6 +428,7 @@ class Player {
       this.sprites.attack.currentFrame = 0
     }
   }
+  
 
   update(deltaTime, collisionBlocks) {
     if (!deltaTime) return
@@ -538,5 +571,42 @@ class Player {
       }
     }
   }
+
+  checkAttackCollision(enemies) {
+    if (!this.isAttacking || this.isHit) return
+
+    const attackBox = this.getAttackHitbox()
+    
+    enemies.forEach(enemy => {
+        const enemyBox = enemy.getHitbox()
+        
+        if (
+            attackBox.x < enemyBox.x + enemyBox.width &&
+            attackBox.x + attackBox.width > enemyBox.x &&
+            attackBox.y < enemyBox.y + enemyBox.height &&
+            attackBox.y + attackBox.height > enemyBox.y
+        ) {
+            enemy.takeDamage(this.attackDamage)
+        }
+    })
+}
   
+  drawHealthBar(c) {
+    const healthBarWidth = 50
+    const healthBarHeight = 5
+    const healthPercentage = this.health / 100
+
+    // Position above character
+    const x = this.x + (this.width - healthBarWidth) / 2
+    const y = this.y + 10
+
+    // Draw background (red)
+    c.fillStyle = 'red'
+    c.fillRect(x, y, healthBarWidth, healthBarHeight)
+
+    // Draw health (green)
+    c.fillStyle = 'green'
+    c.fillRect(x, y, healthBarWidth * healthPercentage, healthBarHeight)
+}
+
 }
