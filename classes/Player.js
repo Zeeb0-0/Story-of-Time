@@ -19,54 +19,72 @@ class Player {
     this.velocity = velocity
     this.isOnGround = false
     
-    // Animation properties
+    // Animation state
+    this.state = 'idle'
+    this.frameTimer = 0
+    
+    // Define specific animation speeds for each state
+    this.animationSpeeds = {
+      idle: 0.15,      // Slower idle animation (more peaceful)
+      run: 0.12,       // Slightly faster run animation
+      jump: 0.1,       // Quick jump frame
+      fall: 0.1,       // Quick fall frame
+      attack: 0.08,    // Fast attack animation
+      hit: 0.08,       // Fast hit reaction
+      dead: 0.2,       // Slow death animation
+      'door-in': 0.15, // Moderate door transition
+      'door-out': 0.15 // Moderate door transition
+    }
+
+    // Animation properties with updated frameCount
     this.sprites = {
       idle: {
         img: null,
         frameCount: 11,
-        currentFrame: 0
+        currentFrame: 0,
       },
       run: {
         img: null,
         frameCount: 8,
-        currentFrame: 0
+        currentFrame: 0,
       },
       jump: {
         img: null,
         frameCount: 1,
-        currentFrame: 0
+        currentFrame: 0,
       },
       fall: {
         img: null,
         frameCount: 1,
-        currentFrame: 0
-      },
-      // New animation states
-      hit: {
-        img: null,
-        frameCount: 2,
-        currentFrame: 0
+        currentFrame: 0,
       },
       attack: {
         img: null,
         frameCount: 3,
-        currentFrame: 0
+        currentFrame: 0,
+      },
+      hit: {
+        img: null,
+        frameCount: 2,
+        currentFrame: 0,
       },
       dead: {
         img: null,
         frameCount: 4,
-        currentFrame: 0
+        currentFrame: 0,
       },
       'door-in': {
         img: null,
         frameCount: 8,
-        currentFrame: 0
+        currentFrame: 0,
       },
       'door-out': {
         img: null,
         frameCount: 8,
-        currentFrame: 0
+        currentFrame: 0,
       }
+    
+      
     }
 
     this.health = 100
@@ -77,9 +95,6 @@ class Player {
 
     // Add attack-related properties
     this.isAttacking = false
-    this.attackCooldown = 0.5 // Half second cooldown between attacks
-    this.attackTimer = 0
-
     
     // Load the run spritesheet using your existing loadImage function
     this.loadSprites()
@@ -87,7 +102,6 @@ class Player {
     // Animation state
     this.state = 'idle' // 'idle', 'run', 'jump', 'fall'
     this.frameTimer = 0
-    this.frameDuration = 0.1 // Time per frame in seconds
     this.facingDirection = 1 // 1 for right, -1 for left
     
     // Single hitbox definition
@@ -197,13 +211,11 @@ class Player {
       `Vel: (${this.velocity.x.toFixed(1)}, ${this.velocity.y.toFixed(1)})`,
       `Facing: ${this.facingDirection === 1 ? 'right' : 'left'}`,
       `State: ${this.state}`,
-      `Health: ${this.health}`,
-      `OnGround: ${this.isOnGround}`,
+      `Speed: ${this.animationSpeeds[this.state]}`,
+      `Frame: ${this.sprites[this.state]?.currentFrame}/${this.sprites[this.state]?.frameCount}`,
       `Attacking: ${this.isAttacking}`,
-      `Attack CD: ${this.attackTimer.toFixed(2)}`,  // Add attack cooldown to debug info
-      `Hit: ${this.isHit}`,
-      `Dead: ${this.isDead}`,
-      `Transitioning: ${this.isTransitioning}`
+      `Locked: ${this.animationLocked}`,  // Replace Attack CD with animation lock status
+      `OnGround: ${this.isOnGround}`
     ]
 
     const textX = this.facingDirection === -1 ? 
@@ -218,24 +230,37 @@ class Player {
   }
 
   updateAnimation(deltaTime) {
-    // Determine animation state
-    if (this.isAttacking) {
-      this.state = 'attack'
+    // Get the current animation speed based on state
+    const currentSpeed = this.animationSpeeds[this.state]
+  
+    // If animation is locked, only update the current animation
+    if (this.animationLocked) {
+      const currentSprite = this.sprites[this.state]
       
-      // Update attack animation
       this.frameTimer += deltaTime
-      if (this.frameTimer >= this.frameDuration) {
+      if (this.frameTimer >= currentSpeed) {
         this.frameTimer = 0
-        this.sprites.attack.currentFrame++
+        currentSprite.currentFrame++
         
-        // Check if attack animation is complete
-        if (this.sprites.attack.currentFrame >= this.sprites.attack.frameCount) {
-          this.isAttacking = false
-          this.sprites.attack.currentFrame = 0
+        // Check if locked animation is complete
+        if (currentSprite.currentFrame >= currentSprite.frameCount) {
+          if (['hit', 'attack', 'door-in', 'door-out'].includes(this.state)) {
+            this.animationLocked = false
+            this.isAttacking = false
+            currentSprite.currentFrame = 0
+            
+            // Reset to idle state after attack
+            this.state = 'idle'
+          } else if (this.state === 'dead') {
+            currentSprite.currentFrame = currentSprite.frameCount - 1 // Stay on last frame
+          }
         }
-        return
       }
-    } else if (this.velocity.y < 0) {
+      return
+    }
+  
+    // Regular animation state updates (when not locked)
+    if (this.velocity.y < 0) {
       this.state = 'jump'
     } else if (this.velocity.y > 0) {
       this.state = 'fall'
@@ -245,15 +270,13 @@ class Player {
       this.state = 'idle'
     }
     
-    // Update facing direction (only if not attacking)
-    if (!this.isAttacking) {
-      if (this.velocity.x > 0) this.facingDirection = 1
-      else if (this.velocity.x < 0) this.facingDirection = -1
-    }
+    // Update facing direction (only when not locked)
+    if (this.velocity.x > 0) this.facingDirection = 1
+    else if (this.velocity.x < 0) this.facingDirection = -1
     
     // Update animation frame
     this.frameTimer += deltaTime
-    if (this.frameTimer >= this.frameDuration) {
+    if (this.frameTimer >= currentSpeed) {
       this.frameTimer = 0
       const sprite = this.sprites[this.state]
       if (sprite) {
@@ -270,12 +293,6 @@ class Player {
       if (this.health === 0) {
         this.isDead = true
       }
-    }
-  }
-
-  attack() {
-    if (!this.isAttacking && !this.isHit && !this.isDead && !this.isTransitioning) {
-      this.isAttacking = true
     }
   }
 
@@ -310,14 +327,19 @@ class Player {
       }
     }
   }
+  
+  attack() {
+    if (!this.animationLocked) {
+      this.state = 'attack'  // Set the state to 'attack'
+      this.isAttacking = true
+      this.animationLocked = true
+      // Reset the attack animation frame
+      this.sprites.attack.currentFrame = 0
+    }
+  }
 
   update(deltaTime, collisionBlocks) {
     if (!deltaTime) return
-    
-    // Update attack cooldown
-    if (this.attackTimer > 0) {
-      this.attackTimer = Math.max(0, this.attackTimer - deltaTime)
-    }
     
     this.applyGravity(deltaTime)
     
@@ -351,32 +373,6 @@ class Player {
 
   applyGravity(deltaTime) {
     this.velocity.y += GRAVITY * deltaTime
-  }
-
-  handleInput(keys) {
-    // Only handle movement if not attacking
-    if (!this.isAttacking) {
-      this.velocity.x = 0
-      if (keys.d.pressed) {
-        this.velocity.x = X_VELOCITY
-      } else if (keys.a.pressed) {
-        this.velocity.x = -X_VELOCITY
-      }
-    }
-
-    // Handle attack input
-    if (keys.space.pressed && this.attackTimer === 0 && !this.isAttacking) {
-      this.attack()
-    }
-  }
-
-  attack() {
-    if (this.attackTimer === 0 && !this.isAttacking) {
-      this.isAttacking = true
-      this.attackTimer = this.attackCooldown
-      // Reset the attack animation frame
-      this.sprites.attack.currentFrame = 0
-    }
   }
 
   getHitbox() {

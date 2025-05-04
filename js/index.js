@@ -185,6 +185,7 @@ addEventListener('keyup', ({ code }) => {
       break
     case 'Space':  // Add this
       keys.space.pressed = false
+      player.canAttack = true  // Allow new attacks when space is released
       break
   }
 })
