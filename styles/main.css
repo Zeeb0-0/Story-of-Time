@@ -1,0 +1,176 @@
+:root {
+    --dark-coffee: #3B2721;
+    --rich-coffee: #66443A;
+    --creamy-beige: #E6D1BD;
+    --caramel: #C68E55;
+    --espresso: #221615;
+    --latte-foam: #F3E9DC;
+    --error-red: #ff3333;
+    --error-dark: #cc0000;
+    --debug-bg: rgba(0, 0, 0, 0.8);
+    --debug-text: #00ff00;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    vertical-align: baseline;
+  }
+  body {
+    background: #3d2816; /* Updated to match the image color */
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  }
+  
+  canvas {
+    width: 1024px;
+    height: 576px;
+    display: block; /* Fix box character issue by ensuring proper display */
+  }
+  
+  /* UI Styling */
+  .menu-container {
+    position: absolute;
+    width: 1024px;
+    height: 576px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #e0c397; /* Light beige text */
+    background-color: #3d2816; /* Solid dark brown to match the image */
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  }
+  
+  .title {
+    font-size: 48px;
+    margin-bottom: 60px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #f8e4c9; /* Slightly lighter beige for title */
+  }
+  
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .menu-button {
+    background-color: #6b4c39; /* Dark brown */
+    color: #e0c397; /* Light beige text */
+    border: 2px solid #c99c6b; /* Medium brown border */
+    padding: 10px 25px;
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-size: 16px;
+    cursor: pointer;
+    min-width: 220px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .menu-button:hover {
+    background-color: #7d5a42; /* Slightly lighter brown on hover */
+    transform: translateY(-2px);
+  }
+  
+  .modal {
+    position: absolute;
+    background-color: #3d2816; /* Updated to match the image color */
+    border: 2px solid #c99c6b; /* Medium brown border */
+    padding: 25px;
+    display: none;
+    color: #e0c397; /* Light beige text */
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    max-width: 600px;
+    min-width: 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-title {
+    font-size: 30px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #f8e4c9; /* Slightly lighter beige for title */
+  }
+  
+  .modal-content {
+    margin-bottom: 20px;
+  }
+  
+  .modal-content h3 {
+    color: #c99c6b; /* Medium brown for headings */
+    margin-bottom: 10px;
+    margin-top: 15px;
+  }
+  
+  .modal-content hr {
+    border: none;
+    height: 1px;
+    background-color: #c99c6b; /* Medium brown */
+    margin-bottom: 15px;
+  }
+  
+  .modal-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+  }
+  
+  .close-button, .back-button {
+    background-color: #6b4c39; /* Dark brown */
+    color: #e0c397; /* Light beige text */
+    border: 2px solid #c99c6b; /* Medium brown border */
+    padding: 8px 20px;
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.2s;
+  }
+  
+  .close-button:hover, .back-button:hover {
+    background-color: #7d5a42; /* Slightly lighter brown on hover */
+  }
+  
+  .player-info {
+    position: absolute;
+    bottom: 20px;
+    text-align: center;
+    width: 100%;
+    color: #c99c6b; /* Medium brown */
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-size: 14px;
+  }
+  
+  .player-info p {
+    margin-bottom: 5px;
+  }
+  
+  /* Fix for sliders */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 200px;
+    height: 10px;
+    background: #6b4c39;
+    border-radius: 5px;
+    outline: none;
+    border: 1px solid #c99c6b;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #e0c397;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid #c99c6b;
+  }
