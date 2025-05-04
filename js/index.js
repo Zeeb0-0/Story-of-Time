@@ -102,7 +102,7 @@ const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
 
 const renderStaticLayers = async () => {
   const offscreenCanvas = document.createElement('canvas')
-  offscreenCanvas.width = CANVAS_WIDTH
+  offscreenCanvas.width = CANVAS_WIDTH * 5
   offscreenCanvas.height = CANVAS_HEIGHT
   const offscreenContext = offscreenCanvas.getContext('2d')
 
@@ -137,6 +137,14 @@ const player = new Player({
   y: 250,
   size: TILE_SIZE * 2,
   velocity: { x: 0, y: 0 },
+})
+
+// Add King Pig right after player creation
+const kingPig = new KingPig({
+  x: 1650,
+  y: 240,
+  size: TILE_SIZE,
+  player: player  // Pass the player instance we just created
 })
 
 const keys = {
@@ -223,6 +231,10 @@ function animate() {
     })
   }
   
+  // Add King Pig update and draw here
+  kingPig.update(deltaTime, collisionBlocks, platforms)
+  kingPig.draw(c)
+
   // Update and draw player
   player.handleInput(keys)
   player.update(deltaTime, collisionBlocks)
