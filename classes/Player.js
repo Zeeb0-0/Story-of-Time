@@ -22,7 +22,16 @@ class Player {
     // Animation state
     this.state = 'idle'
     this.frameTimer = 0
-    
+
+    // Define the attack hitbox
+    // This hitbox is used for the attack animation
+    // and is different from the main hitbox
+    // The attack hitbox is smaller and only active during the attack animation
+    this.attackHitbox = {
+      width: this.width * 0.5,  // Half the sprite width
+      height: this.height * 0.8, // 80% of sprite height
+      active: false             // Only active during attack animation
+    }
     // Define specific animation speeds for each state
     this.animationSpeeds = {
       idle: 0.15,      // Slower idle animation (more peaceful)
@@ -187,6 +196,28 @@ class Player {
     c.lineWidth = 1
     c.strokeRect(this.x, this.y, this.width, this.height)
 
+    // Draw attack hitbox if active
+    if (this.attackHitbox.active) {
+      const attackHitbox = this.getAttackHitbox()
+      c.strokeStyle = 'red'
+      c.lineWidth = 2
+      c.strokeRect(
+        attackHitbox.x,
+        attackHitbox.y,
+        attackHitbox.width,
+        attackHitbox.height
+      )
+
+      // Fill attack hitbox with semi-transparent red
+      c.fillStyle = 'rgba(255, 0, 0, 0.2)'
+      c.fillRect(
+        attackHitbox.x,
+        attackHitbox.y,
+        attackHitbox.width,
+        attackHitbox.height
+      )
+    }
+
     // Calculate centers
     const center = {
       x: hitbox.x + hitbox.width / 2,
@@ -214,7 +245,8 @@ class Player {
       `Speed: ${this.animationSpeeds[this.state]}`,
       `Frame: ${this.sprites[this.state]?.currentFrame}/${this.sprites[this.state]?.frameCount}`,
       `Attacking: ${this.isAttacking}`,
-      `Locked: ${this.animationLocked}`,  // Replace Attack CD with animation lock status
+      `Attack Box: ${this.attackHitbox.active ? 'active' : 'inactive'}`,
+      `Locked: ${this.animationLocked}`,
       `OnGround: ${this.isOnGround}`
     ]
 
@@ -230,10 +262,8 @@ class Player {
   }
 
   updateAnimation(deltaTime) {
-    // Get the current animation speed based on state
     const currentSpeed = this.animationSpeeds[this.state]
-  
-    // If animation is locked, only update the current animation
+
     if (this.animationLocked) {
       const currentSprite = this.sprites[this.state]
       
@@ -242,17 +272,15 @@ class Player {
         this.frameTimer = 0
         currentSprite.currentFrame++
         
-        // Check if locked animation is complete
         if (currentSprite.currentFrame >= currentSprite.frameCount) {
           if (['hit', 'attack', 'door-in', 'door-out'].includes(this.state)) {
             this.animationLocked = false
             this.isAttacking = false
+            this.attackHitbox.active = false  // Deactivate attack hitbox
             currentSprite.currentFrame = 0
-            
-            // Reset to idle state after attack
             this.state = 'idle'
           } else if (this.state === 'dead') {
-            currentSprite.currentFrame = currentSprite.frameCount - 1 // Stay on last frame
+            currentSprite.currentFrame = currentSprite.frameCount - 1
           }
         }
       }
@@ -327,13 +355,31 @@ class Player {
       }
     }
   }
+
+  getAttackHitbox() {
+    // Position the attack hitbox based on facing direction
+    const x = this.facingDirection === 1 
+      ? this.x + this.width * 0.5  // Place on right side
+      : this.x                     // Place on left side, starting from player's left edge
+    
+    // Center vertically relative to player
+    const y = this.y + (this.height - this.attackHitbox.height) * 0.5
+  
+    return {
+      x,
+      y,
+      width: this.attackHitbox.width,
+      height: this.attackHitbox.height,
+      active: this.attackHitbox.active
+    }
+  }
   
   attack() {
     if (!this.animationLocked) {
-      this.state = 'attack'  // Set the state to 'attack'
+      this.state = 'attack'
       this.isAttacking = true
       this.animationLocked = true
-      // Reset the attack animation frame
+      this.attackHitbox.active = true  // Activate attack hitbox
       this.sprites.attack.currentFrame = 0
     }
   }
