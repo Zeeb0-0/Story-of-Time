@@ -1,6 +1,8 @@
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 const dpr = window.devicePixelRatio || 1
+const GAME_SCALE = 1; // Adjustable scale factor for the entire game
+
 
 canvas.width = 1024 * dpr
 canvas.height = 576 * dpr
@@ -36,7 +38,8 @@ const tilesets = {
 // Tile setup
 const collisionBlocks = []
 const platforms = []
-const blockSize = 16 // Assuming each tile is 16x16 pixels
+const TILE_SIZE = 32;
+const blockSize = TILE_SIZE; // Assuming each tile is 32x32 pixels
 
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
@@ -53,8 +56,8 @@ collisions.forEach((row, y) => {
         new Platform({
           x: x * blockSize,
           y: y * blockSize + blockSize,
-          width: 16,
-          height: 4,
+          width: TILE_SIZE,
+          height: TILE_SIZE / 4,
         }),
       )
     }
@@ -82,10 +85,10 @@ const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
           srcY, // source x, y
           tileSize,
           tileSize, // source width, height
-          x * 16,
-          y * 16, // destination x, y
-          16,
-          16, // destination width, height
+          x * TILE_SIZE,
+          y * TILE_SIZE, // destination x, y
+          TILE_SIZE,
+          TILE_SIZE, // destination width, height
         )
       }
     })
@@ -131,8 +134,8 @@ const renderStaticLayers = async () => {
 // Change xy coordinates to move player's default position
 const player = new Player({
   x: 100,
-  y: 100,
-  size: 16,
+  y: 150,
+  size: TILE_SIZE * 2,
   velocity: { x: 0, y: 0 },
 })
 
@@ -170,8 +173,8 @@ function animate() {
 
   // Render scene
   c.save()
-  c.scale(dpr, dpr)
-  c.clearRect(0, 0, canvas.width, canvas.height)
+  c.scale(dpr * GAME_SCALE, dpr * GAME_SCALE)
+  c.clearRect(0, 0, canvas.width / (dpr * GAME_SCALE), canvas.height / (dpr * GAME_SCALE))
   c.drawImage(backgroundCanvas, 0, 0)
   player.draw(c)
   c.restore()

@@ -1,9 +1,9 @@
-const X_VELOCITY = 200
+const X_VELOCITY = 100
 const JUMP_POWER = 250
 const GRAVITY = 580
 
 class Player {
-  constructor({ x, y, size, velocity = { x: 0, y: 0 } }) {
+  constructor({ x, y, size, velocity = { x: 78, y: 58 } }) {
     this.x = x
     this.y = y
     

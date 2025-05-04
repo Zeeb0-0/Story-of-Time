@@ -30,8 +30,10 @@
   }
   
   canvas {
-    width: 1024px;
-    height: 576px;
+    image-rendering: pixelated; /* Keeps pixel art sharp when scaling */
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height:auto;
     display: block; /* Fix box character issue by ensuring proper display */
   }
   
